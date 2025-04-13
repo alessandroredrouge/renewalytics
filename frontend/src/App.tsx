@@ -13,6 +13,8 @@ import Scenarios from "./pages/Scenarios";
 import Results from "./pages/Results";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import ProjectOverview from "./pages/ProjectOverview";
+import Pipeline from "./pages/Pipeline";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/scenarios" element={<Scenarios />} />
             <Route path="/results" element={<Results />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/project-overview" element={<ProjectOverview />} />
+            <Route path="/pipeline" element={<Pipeline />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
