@@ -15,9 +15,9 @@ import {
   Database, 
   Layout, 
   Share2, 
-  Save, 
-  Sliders, 
-  CloudSync,
+  Save,
+  Cloud, 
+  Sliders,
   Download,
   Upload,
   AlertTriangle
@@ -425,7 +425,7 @@ const Settings = () => {
                 <div className="flex flex-col gap-2">
                   <Label>Manual Backup</Label>
                   <Button variant="outline" className="flex items-center gap-2 w-full md:w-auto justify-center">
-                    <CloudSync size={16} />
+                    <Cloud size={16} />
                     <span>Backup All Projects</span>
                   </Button>
                 </div>
