@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -9,62 +8,62 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-} from '@/components/ui/sidebar';
-import { 
-  BarChart3, 
-  Calculator, 
-  Database, 
-  Settings, 
-  Zap, 
-  DollarSign, 
-  LineChart, 
-  LayoutDashboard
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/sidebar";
+import {
+  BarChart3,
+  Calculator,
+  Database,
+  Settings,
+  Zap,
+  DollarSign,
+  LineChart,
+  LayoutDashboard,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const AppSidebar = () => {
   const location = useLocation();
-  
+
   const menuItems = [
     {
-      title: 'Dashboard',
+      title: "Dashboard",
       icon: LayoutDashboard,
-      path: '/',
+      path: "/",
     },
     {
-      title: 'Project Input',
+      title: "Project Input",
       icon: Database,
-      path: '/project-input',
+      path: "/project-input",
     },
     {
-      title: 'Dispatch Logic',
+      title: "Dispatch Logic",
       icon: Zap,
-      path: '/dispatch-logic',
+      path: "/dispatch-logic",
     },
     {
-      title: 'Revenue Streams',
+      title: "Revenue Streams",
       icon: DollarSign,
-      path: '/revenue-streams',
+      path: "/revenue-streams",
     },
     {
-      title: 'Financials',
+      title: "Financials",
       icon: Calculator,
-      path: '/financials',
+      path: "/financials",
     },
     {
-      title: 'Scenarios',
+      title: "Scenarios",
       icon: BarChart3,
-      path: '/scenarios',
+      path: "/scenarios",
     },
     {
-      title: 'Results',
+      title: "Results",
       icon: LineChart,
-      path: '/results',
+      path: "/results",
     },
     {
-      title: 'Settings',
+      title: "Settings",
       icon: Settings,
-      path: '/settings',
+      path: "/settings",
     },
   ];
 
@@ -72,7 +71,9 @@ const AppSidebar = () => {
     <Sidebar>
       <SidebarHeader className="px-2 py-6">
         <div className="flex items-center justify-center space-x-2 px-2">
-          <div className="font-montserrat font-bold text-xl text-white">Renewalytics</div>
+          <div className="font-montserrat font-bold text-xl text-white">
+            Renewalytics
+          </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -82,7 +83,8 @@ const AppSidebar = () => {
               <SidebarMenuButton
                 asChild
                 className={cn(
-                  location.pathname === item.path && "bg-sidebar-accent text-sidebar-accent-foreground"
+                  location.pathname === item.path &&
+                    "bg-sidebar-accent text-sidebar-accent-foreground"
                 )}
               >
                 <Link to={item.path} className="flex items-center gap-3">
@@ -96,7 +98,9 @@ const AppSidebar = () => {
       </SidebarContent>
       <SidebarFooter>
         <div className="px-4 py-4">
-          <div className="text-xs text-sidebar-foreground/60 mb-2">Renewalytics</div>
+          <div className="text-xs text-sidebar-foreground/60 mb-2">
+            Renewalytics
+          </div>
           <div className="text-xs text-sidebar-foreground/60">
             Energy Revenue Forecasting Tool
           </div>

@@ -1,18 +1,13 @@
-
-import React from 'react';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { 
-  HelpCircle,
-  Settings,
-  User
-} from 'lucide-react';
-import { 
+import React from "react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { HelpCircle, Settings, User } from "lucide-react";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   return (
@@ -23,7 +18,7 @@ const Navbar = () => {
           Renewalytics
         </h1>
       </div>
-      
+
       <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -37,7 +32,7 @@ const Navbar = () => {
             <DropdownMenuItem>Support</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
