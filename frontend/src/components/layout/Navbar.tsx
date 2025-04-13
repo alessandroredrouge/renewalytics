@@ -3,9 +3,6 @@ import React from 'react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { 
-  Battery, 
-  Sun, 
-  Zap,
   HelpCircle,
   Settings,
   User
@@ -28,11 +25,6 @@ const Navbar = () => {
       </div>
       
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1 bg-muted rounded-full px-3 py-1.5 text-sm">
-          <Battery className="h-4 w-4 text-energy-green" />
-          <span className="font-medium">BESS Mode</span>
-        </div>
-        
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="ml-2">

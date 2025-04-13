@@ -11,7 +11,6 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { 
-  Battery, 
   BarChart3, 
   Calculator, 
   Database, 
@@ -73,7 +72,6 @@ const AppSidebar = () => {
     <Sidebar>
       <SidebarHeader className="px-2 py-6">
         <div className="flex items-center justify-center space-x-2 px-2">
-          <Battery size={28} className="text-energy-yellow" />
           <div className="font-montserrat font-bold text-xl text-white">Renewalytics</div>
         </div>
       </SidebarHeader>
@@ -98,10 +96,9 @@ const AppSidebar = () => {
       </SidebarContent>
       <SidebarFooter>
         <div className="px-4 py-4">
-          <div className="text-xs text-sidebar-foreground/60 mb-2">Current Mode</div>
-          <div className="flex items-center gap-2 bg-sidebar-accent/30 p-2 rounded-md">
-            <Battery size={16} className="text-energy-yellow" />
-            <span className="text-sm font-medium">BESS Simulation</span>
+          <div className="text-xs text-sidebar-foreground/60 mb-2">Renewalytics</div>
+          <div className="text-xs text-sidebar-foreground/60">
+            Energy Revenue Forecasting Tool
           </div>
         </div>
       </SidebarFooter>

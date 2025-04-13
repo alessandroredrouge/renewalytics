@@ -16,7 +16,7 @@ const Dashboard = () => {
         <div className="mt-4 md:mt-0">
           <Button asChild>
             <Link to="/project-input" className="flex items-center gap-2">
-              <span>New Simulation</span>
+              <span>New Project</span>
               <ChevronRight size={16} />
             </Link>
           </Button>
@@ -28,16 +28,16 @@ const Dashboard = () => {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Battery className="h-5 w-5 text-energy-green" />
-              <span>BESS Simulation</span>
+              <span>Battery Storage</span>
             </CardTitle>
             <CardDescription>Battery Energy Storage System</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm">Simulate techno-economic feasibility for standalone BESS projects with customizable parameters.</p>
+            <p className="text-sm">Simulate techno-economic feasibility for battery storage projects with customizable parameters.</p>
             <div className="mt-4">
               <Button variant="outline" asChild size="sm" className="w-full">
                 <Link to="/project-input" className="flex items-center justify-center gap-2">
-                  <span>Start Simulation</span>
+                  <span>Start Project</span>
                   <ChevronRight size={16} />
                 </Link>
               </Button>
@@ -49,7 +49,7 @@ const Dashboard = () => {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Zap className="h-5 w-5 text-energy-yellow" />
-              <span>PV Simulation</span>
+              <span>Solar PV</span>
             </CardTitle>
             <CardDescription>Photovoltaic Solar Systems</CardDescription>
           </CardHeader>
@@ -67,7 +67,7 @@ const Dashboard = () => {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Zap className="h-5 w-5 text-energy-teal" />
-              <span>PV+BESS Simulation</span>
+              <span>Hybrid Systems</span>
             </CardTitle>
             <CardDescription>Combined Solar and Storage</CardDescription>
           </CardHeader>
@@ -107,7 +107,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <p className="font-medium">Dispatch Logic Configuration</p>
-                  <p className="text-sm text-muted-foreground">Customize BESS operation with flexible dispatch strategies</p>
+                  <p className="text-sm text-muted-foreground">Customize system operation with flexible dispatch strategies</p>
                 </div>
               </li>
               <li className="flex items-start gap-2">

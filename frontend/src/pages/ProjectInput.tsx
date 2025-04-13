@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
-  Battery, 
   Calendar, 
   Save, 
   ChevronRight,
@@ -26,7 +25,7 @@ const ProjectInput = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-energy-blue">Project Input</h1>
-          <p className="text-muted-foreground mt-1">Configure technical and market parameters for your BESS project</p>
+          <p className="text-muted-foreground mt-1">Configure technical and market parameters for your energy project</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="gap-2">
@@ -85,11 +84,17 @@ const ProjectInput = () => {
             </div>
             
             <div className="space-y-4">
-              <div className="p-4 bg-muted rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <Battery size={48} className="mx-auto mb-2 text-energy-green" />
-                  <h3 className="font-medium text-lg">BESS Simulation Mode</h3>
-                  <p className="text-sm text-muted-foreground">Currently configured for Battery Energy Storage System analysis</p>
+              <div className="p-4 bg-muted rounded-lg">
+                <h3 className="font-medium text-lg text-center mb-2">Project Type</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button variant="outline" className="h-auto py-3 px-4 flex flex-col items-center">
+                    <span className="font-medium">Battery Storage</span>
+                    <span className="text-xs text-muted-foreground mt-1">BESS</span>
+                  </Button>
+                  <Button variant="outline" className="h-auto py-3 px-4 flex flex-col items-center opacity-60" disabled>
+                    <span className="font-medium">Solar PV</span>
+                    <span className="text-xs text-muted-foreground mt-1">Coming Soon</span>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -101,7 +106,6 @@ const ProjectInput = () => {
       <Tabs defaultValue="technical" className="space-y-4">
         <TabsList>
           <TabsTrigger value="technical" className="gap-2">
-            <Battery size={16} />
             <span>Technical Parameters</span>
           </TabsTrigger>
           <TabsTrigger value="market" className="gap-2">
@@ -117,8 +121,8 @@ const ProjectInput = () => {
         <TabsContent value="technical" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>BESS Technical Parameters</CardTitle>
-              <CardDescription>Define the technical specifications of your battery system</CardDescription>
+              <CardTitle>Technical Parameters</CardTitle>
+              <CardDescription>Define the technical specifications of your system</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="data-grid">
