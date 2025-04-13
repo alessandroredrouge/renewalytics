@@ -18,22 +18,45 @@ import {
   DollarSign,
   LineChart,
   LayoutDashboard,
+  FolderKanban,
+  LayoutList,
+  FolderGit2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useView } from "@/contexts/ViewContext";
 
 const AppSidebar = () => {
   const location = useLocation();
+  const { view } = useView();
 
-  const menuItems = [
+  const generalMenuItems = [
     {
       title: "Dashboard",
       icon: LayoutDashboard,
       path: "/",
     },
     {
-      title: "Project Input",
+      title: "Pipeline",
+      icon: FolderGit2,
+      path: "/pipeline",
+    },
+    {
+      title: "New Project",
       icon: Database,
       path: "/project-input",
+    },
+    {
+      title: "Settings",
+      icon: Settings,
+      path: "/settings",
+    },
+  ];
+
+  const projectMenuItems = [
+    {
+      title: "Project Overview",
+      icon: LayoutList,
+      path: "/project-overview",
     },
     {
       title: "Dispatch Logic",
@@ -60,12 +83,9 @@ const AppSidebar = () => {
       icon: LineChart,
       path: "/results",
     },
-    {
-      title: "Settings",
-      icon: Settings,
-      path: "/settings",
-    },
   ];
+
+  const menuItems = view === "general" ? generalMenuItems : projectMenuItems;
 
   return (
     <Sidebar>
@@ -83,6 +103,7 @@ const AppSidebar = () => {
               <SidebarMenuButton
                 asChild
                 className={cn(
+                  "w-full justify-start",
                   location.pathname === item.path &&
                     "bg-sidebar-accent text-sidebar-accent-foreground"
                 )}
