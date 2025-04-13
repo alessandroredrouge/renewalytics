@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Battery, BatteryCharging, Lightning, Settings, PlusCircle, LineChart, BarChart3, Info } from 'lucide-react';
+import { Battery, BatteryCharging, Zap, Settings, PlusCircle, LineChart, BarChart3, Info } from 'lucide-react';
 
 const DispatchLogic = () => {
   return (
@@ -31,7 +31,7 @@ const DispatchLogic = () => {
             Basic Settings
           </TabsTrigger>
           <TabsTrigger value="advanced">
-            <Lightning className="mr-2 h-4 w-4" />
+            <Zap className="mr-2 h-4 w-4" />
             Advanced Logic
           </TabsTrigger>
           <TabsTrigger value="simulation">
