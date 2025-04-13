@@ -9,6 +9,8 @@ import Dashboard from "./pages/Dashboard";
 import ProjectInput from "./pages/ProjectInput";
 import DispatchLogic from "./pages/DispatchLogic";
 import RevenueStreams from "./pages/RevenueStreams";
+import Financials from "./pages/Financials";
+import Scenarios from "./pages/Scenarios";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,10 +27,10 @@ const App = () => (
             <Route path="/project-input" element={<ProjectInput />} />
             <Route path="/dispatch-logic" element={<DispatchLogic />} />
             <Route path="/revenue-streams" element={<RevenueStreams />} />
-            <Route path="/financials" element={<Dashboard />} /> {/* Placeholder */}
-            <Route path="/scenarios" element={<Dashboard />} /> {/* Placeholder */}
-            <Route path="/results" element={<Dashboard />} /> {/* Placeholder */}
-            <Route path="/settings" element={<Dashboard />} /> {/* Placeholder */}
+            <Route path="/financials" element={<Financials />} />
+            <Route path="/scenarios" element={<Scenarios />} />
+            <Route path="/results" element={<Dashboard />} /> {/* Still a placeholder */}
+            <Route path="/settings" element={<Dashboard />} /> {/* Still a placeholder */}
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
