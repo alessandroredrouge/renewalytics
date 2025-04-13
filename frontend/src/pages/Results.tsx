@@ -1,316 +1,259 @@
 
-import React, { useState } from 'react';
-import { 
-  ChartContainer, 
-  ChartTooltip, 
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent
-} from '@/components/ui/chart';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from '@/components/ui/tabs';
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Button } from '@/components/ui/button';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { Download, PieChart, LineChart as LineChartIcon, BarChart3, FileText } from 'lucide-react';
+import { Download, Filter, Share } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
-const sampleRevenueData = [
-  { month: 'Jan', revenue: 15000, profit: 7500 },
-  { month: 'Feb', revenue: 18000, profit: 9000 },
-  { month: 'Mar', revenue: 22000, profit: 10000 },
-  { month: 'Apr', revenue: 21000, profit: 9800 },
-  { month: 'May', revenue: 24000, profit: 12000 },
-  { month: 'Jun', revenue: 28000, profit: 14000 },
-  { month: 'Jul', revenue: 30000, profit: 15000 },
-  { month: 'Aug', revenue: 26000, profit: 13000 },
-  { month: 'Sep', revenue: 29000, profit: 14500 },
-  { month: 'Oct', revenue: 31000, profit: 15500 },
-  { month: 'Nov', revenue: 34000, profit: 17000 },
-  { month: 'Dec', revenue: 38000, profit: 19000 },
+// Sample data for demonstration
+const monthlyData = [
+  { name: 'Jan', revenue: 4000, dispatch: 2400 },
+  { name: 'Feb', revenue: 3000, dispatch: 1398 },
+  { name: 'Mar', revenue: 2000, dispatch: 9800 },
+  { name: 'Apr', revenue: 2780, dispatch: 3908 },
+  { name: 'May', revenue: 1890, dispatch: 4800 },
+  { name: 'Jun', revenue: 2390, dispatch: 3800 },
+  { name: 'Jul', revenue: 3490, dispatch: 4300 },
+  { name: 'Aug', revenue: 4000, dispatch: 2400 },
+  { name: 'Sep', revenue: 3000, dispatch: 1398 },
+  { name: 'Oct', revenue: 2000, dispatch: 9800 },
+  { name: 'Nov', revenue: 2780, dispatch: 3908 },
+  { name: 'Dec', revenue: 1890, dispatch: 4800 },
 ];
 
-const sampleEnergyData = [
-  { month: 'Jan', charge: 280, discharge: 230 },
-  { month: 'Feb', charge: 300, discharge: 270 },
-  { month: 'Mar', charge: 340, discharge: 310 },
-  { month: 'Apr', charge: 360, discharge: 330 },
-  { month: 'May', charge: 380, discharge: 350 },
-  { month: 'Jun', charge: 410, discharge: 370 },
-  { month: 'Jul', charge: 430, discharge: 390 },
-  { month: 'Aug', charge: 420, discharge: 380 },
-  { month: 'Sep', charge: 400, discharge: 360 },
-  { month: 'Oct', charge: 380, discharge: 340 },
-  { month: 'Nov', charge: 360, discharge: 320 },
-  { month: 'Dec', charge: 340, discharge: 300 },
+const revenueStreams = [
+  { name: 'Energy Arbitrage', value: 40 },
+  { name: 'Frequency Regulation', value: 30 },
+  { name: 'Capacity', value: 15 },
+  { name: 'Demand Response', value: 10 },
+  { name: 'Other', value: 5 },
 ];
 
-const ResultsPage = () => {
-  const [activeTab, setActiveTab] = useState('charts');
-
-  const chartConfig = {
-    revenue: {
-      label: "Revenue",
-      theme: {
-        light: "#2F855A",
-        dark: "#4fd1c5",
-      },
-    },
-    profit: {
-      label: "Profit",
-      theme: {
-        light: "#1A365D",
-        dark: "#90cdf4",
-      },
-    },
-    charge: {
-      label: "Charge",
-      theme: {
-        light: "#ECC94B",
-        dark: "#fbd38d",
-      },
-    },
-    discharge: {
-      label: "Discharge",
-      theme: {
-        light: "#9B2C2C",
-        dark: "#fc8181",
-      },
-    },
-  };
-
+const Results = () => {
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Results</h1>
-          <p className="text-muted-foreground">
-            View and analyze your energy storage system performance results.
-          </p>
+          <h1 className="text-3xl font-bold text-energy-blue">Simulation Results</h1>
+          <p className="text-muted-foreground mt-1">Analysis of BESS project financial and operational metrics</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="flex items-center gap-1">
+        <div className="flex items-center gap-2 mt-4 md:mt-0">
+          <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Filter size={16} />
+            <span>Filter</span>
+          </Button>
+          <Button variant="outline" size="sm" className="flex items-center gap-2">
             <Download size={16} />
-            Export Results
+            <span>Export</span>
+          </Button>
+          <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Share size={16} />
+            <span>Share</span>
           </Button>
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid grid-cols-3 md:w-[400px]">
-          <TabsTrigger value="charts">
-            <LineChartIcon size={16} className="mr-2" />
-            Charts
-          </TabsTrigger>
-          <TabsTrigger value="data">
-            <BarChart3 size={16} className="mr-2" />
-            Data Tables
-          </TabsTrigger>
-          <TabsTrigger value="reports">
-            <FileText size={16} className="mr-2" />
-            Reports
-          </TabsTrigger>
+      <Tabs defaultValue="summary" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="financial">Financial KPIs</TabsTrigger>
+          <TabsTrigger value="operational">Operational Data</TabsTrigger>
+          <TabsTrigger value="comparison">Scenario Comparison</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="charts" className="space-y-6 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <TabsContent value="summary" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Revenue & Profit</CardTitle>
-                <CardDescription>Monthly revenue and profit from your energy storage system</CardDescription>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Project IRR</CardTitle>
+                <CardDescription>Internal Rate of Return</CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px]">
-                  <LineChart data={sampleRevenueData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Line type="monotone" dataKey="revenue" stroke="var(--color-revenue)" strokeWidth={2} dot={{ strokeWidth: 2 }} />
-                    <Line type="monotone" dataKey="profit" stroke="var(--color-profit)" strokeWidth={2} dot={{ strokeWidth: 2 }} />
-                  </LineChart>
-                </ChartContainer>
+                <div className="text-3xl font-bold text-energy-green">12.4%</div>
+                <p className="text-sm text-muted-foreground mt-1">Above hurdle rate (10%)</p>
+                <div className="w-full bg-muted h-2 rounded-full mt-3">
+                  <div className="bg-energy-green h-2 rounded-full" style={{ width: '65%' }}></div>
+                </div>
               </CardContent>
-              <CardFooter className="text-sm text-muted-foreground">
-                Data represents 12-month period
-              </CardFooter>
             </Card>
-
+            
             <Card>
-              <CardHeader>
-                <CardTitle>Charge & Discharge Cycles</CardTitle>
-                <CardDescription>Monthly battery charge and discharge patterns</CardDescription>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Project NPV</CardTitle>
+                <CardDescription>Net Present Value</CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px]">
-                  <BarChart data={sampleEnergyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Bar dataKey="charge" fill="var(--color-charge)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="discharge" fill="var(--color-discharge)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ChartContainer>
+                <div className="text-3xl font-bold text-energy-blue">$3.2M</div>
+                <p className="text-sm text-muted-foreground mt-1">Discount rate: 8%</p>
+                <div className="w-full bg-muted h-2 rounded-full mt-3">
+                  <div className="bg-energy-blue h-2 rounded-full" style={{ width: '70%' }}></div>
+                </div>
               </CardContent>
-              <CardFooter className="text-sm text-muted-foreground">
-                Values shown in MWh
-              </CardFooter>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Payback Period</CardTitle>
+                <CardDescription>Simple Payback Period</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-energy-yellow">7.3 years</div>
+                <p className="text-sm text-muted-foreground mt-1">Target: 8 years</p>
+                <div className="w-full bg-muted h-2 rounded-full mt-3">
+                  <div className="bg-energy-yellow h-2 rounded-full" style={{ width: '78%' }}></div>
+                </div>
+              </CardContent>
             </Card>
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Annual Performance Overview</CardTitle>
-              <CardDescription>Composite view of system performance metrics</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[400px]">
-                <ChartContainer config={chartConfig} className="h-full">
-                  <LineChart 
-                    data={sampleRevenueData} 
-                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                  >
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle className="text-lg">Revenue Breakdown</CardTitle>
+                <CardDescription>By Revenue Stream</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={revenueStreams}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis yAxisId="left" orientation="left" stroke="var(--color-revenue)" />
-                    <YAxis yAxisId="right" orientation="right" stroke="var(--color-profit)" />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Line 
-                      yAxisId="left"
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="var(--color-revenue)" 
-                      strokeWidth={2} 
-                      dot={{ strokeWidth: 2 }} 
-                    />
-                    <Line 
-                      yAxisId="right"
-                      type="monotone" 
-                      dataKey="profit" 
-                      stroke="var(--color-profit)" 
-                      strokeWidth={2} 
-                      dot={{ strokeWidth: 2 }} 
-                    />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="value" name="Revenue %" fill="#2F855A" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle className="text-lg">Monthly Revenue</CardTitle>
+                <CardDescription>Project Year 1</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="revenue" stroke="#1A365D" strokeWidth={2} />
+                    <Line type="monotone" dataKey="dispatch" stroke="#2F855A" strokeWidth={2} />
                   </LineChart>
-                </ChartContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="data" className="mt-4">
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+          
           <Card>
             <CardHeader>
-              <CardTitle>Energy Data Tables</CardTitle>
-              <CardDescription>Tabular view of energy data</CardDescription>
+              <CardTitle className="text-lg">Key Metrics Summary</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="w-full data-grid">
+                <table className="w-full border-collapse">
                   <thead>
                     <tr>
-                      <th className="data-header">Month</th>
-                      <th className="data-header">Revenue ($)</th>
-                      <th className="data-header">Profit ($)</th>
-                      <th className="data-header">Charge (MWh)</th>
-                      <th className="data-header">Discharge (MWh)</th>
-                      <th className="data-header">Efficiency (%)</th>
+                      <th className="text-left py-3 px-4 bg-muted font-medium text-sm">Metric</th>
+                      <th className="text-right py-3 px-4 bg-muted font-medium text-sm">Value</th>
+                      <th className="text-right py-3 px-4 bg-muted font-medium text-sm">Unit</th>
+                      <th className="text-right py-3 px-4 bg-muted font-medium text-sm">Status</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {sampleRevenueData.map((item, index) => (
-                      <tr key={item.month}>
-                        <td className="data-cell">{item.month}</td>
-                        <td className="data-cell">${item.revenue.toLocaleString()}</td>
-                        <td className="data-cell">${item.profit.toLocaleString()}</td>
-                        <td className="data-cell">{sampleEnergyData[index].charge}</td>
-                        <td className="data-cell">{sampleEnergyData[index].discharge}</td>
-                        <td className="data-cell">
-                          {Math.round((sampleEnergyData[index].discharge / sampleEnergyData[index].charge) * 100)}%
-                        </td>
-                      </tr>
-                    ))}
+                  <tbody className="divide-y">
+                    <tr>
+                      <td className="py-3 px-4 font-medium">Levelized Cost of Storage</td>
+                      <td className="py-3 px-4 text-right">152.3</td>
+                      <td className="py-3 px-4 text-right">$/MWh</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Good
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 px-4 font-medium">Annual Capacity Factor</td>
+                      <td className="py-3 px-4 text-right">23.4</td>
+                      <td className="py-3 px-4 text-right">%</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Average
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 px-4 font-medium">Round-Trip Efficiency</td>
+                      <td className="py-3 px-4 text-right">87.5</td>
+                      <td className="py-3 px-4 text-right">%</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Good
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 px-4 font-medium">Average Daily Cycles</td>
+                      <td className="py-3 px-4 text-right">1.3</td>
+                      <td className="py-3 px-4 text-right">cycles/day</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Good
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 px-4 font-medium">Battery Degradation (Year 1)</td>
+                      <td className="py-3 px-4 text-right">2.1</td>
+                      <td className="py-3 px-4 text-right">%</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Good
+                        </span>
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
             </CardContent>
-            <CardFooter>
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
-                <Download size={16} />
-                Export as CSV
-              </Button>
-            </CardFooter>
           </Card>
         </TabsContent>
-
-        <TabsContent value="reports" className="space-y-6 mt-4">
+        
+        <TabsContent value="financial" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Performance Reports</CardTitle>
-              <CardDescription>
-                Download and view detailed performance reports
-              </CardDescription>
+              <CardTitle>Financial Performance</CardTitle>
+              <CardDescription>Detailed financial metrics</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <FileText size={24} className="text-primary" />
-                    <div>
-                      <h4 className="font-medium">Monthly Performance Report</h4>
-                      <p className="text-sm text-muted-foreground">April 2025</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">Download</Button>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <FileText size={24} className="text-primary" />
-                    <div>
-                      <h4 className="font-medium">Quarterly Financial Analysis</h4>
-                      <p className="text-sm text-muted-foreground">Q1 2025</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">Download</Button>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <FileText size={24} className="text-primary" />
-                    <div>
-                      <h4 className="font-medium">Annual Revenue Projection</h4>
-                      <p className="text-sm text-muted-foreground">2025 Fiscal Year</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">Download</Button>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <FileText size={24} className="text-primary" />
-                    <div>
-                      <h4 className="font-medium">Battery Degradation Analysis</h4>
-                      <p className="text-sm text-muted-foreground">March 2025</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">Download</Button>
-                </div>
-              </div>
+              <p>Financial metrics content will appear here in the full implementation.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="operational" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Operational Performance</CardTitle>
+              <CardDescription>Detailed operational metrics</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Operational metrics content will appear here in the full implementation.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="comparison" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Scenario Comparison</CardTitle>
+              <CardDescription>Compare different scenarios</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Scenario comparison content will appear here in the full implementation.</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -319,4 +262,4 @@ const ResultsPage = () => {
   );
 };
 
-export default ResultsPage;
+export default Results;
