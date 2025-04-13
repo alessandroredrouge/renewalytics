@@ -25,3 +25,12 @@ dist-ssr
 
 # Python
 venv
+__pycache__
+main.cpython-311.pyc
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+
+# Cursor rules
+.cursor
