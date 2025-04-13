@@ -11,6 +11,8 @@ import DispatchLogic from "./pages/DispatchLogic";
 import RevenueStreams from "./pages/RevenueStreams";
 import Financials from "./pages/Financials";
 import Scenarios from "./pages/Scenarios";
+import Results from "./pages/Results";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,8 +31,8 @@ const App = () => (
             <Route path="/revenue-streams" element={<RevenueStreams />} />
             <Route path="/financials" element={<Financials />} />
             <Route path="/scenarios" element={<Scenarios />} />
-            <Route path="/results" element={<Dashboard />} /> {/* Still a placeholder */}
-            <Route path="/settings" element={<Dashboard />} /> {/* Still a placeholder */}
+            <Route path="/results" element={<Results />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
