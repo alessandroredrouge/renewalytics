@@ -110,7 +110,7 @@ async def insert_project(client: Client, project_data: dict) -> dict:
 async def count_projects(client: Client) -> int:
     """Counts the total number of projects in the Supabase 'projects' table."""
     try:
-        response = client.table('projects').select('*', count='exact', head=True).execute()
+        response = client.table('projects').select('*', count='exact').execute()
         # Log the raw response object for inspection
         logger.info(f"Raw count_projects response object: {response}")
         try:
@@ -132,7 +132,7 @@ async def count_projects(client: Client) -> int:
 async def count_pipelines(client: Client) -> int:
     """Counts the total number of pipelines in the Supabase 'pipelines' table."""
     try:
-        response = client.table('pipelines').select('*', count='exact', head=True).execute()
+        response = client.table('pipelines').select('*', count='exact').execute()
         # Log the raw response object for inspection
         logger.info(f"Raw count_pipelines response object: {response}")
         try:
