@@ -107,6 +107,33 @@ async def insert_project(client: Client, project_data: dict) -> dict:
         print(f"An unexpected error occurred during project insert: {e}")
         raise
 
+async def fetch_project_by_id(client: Client, project_id: str) -> dict | None:
+    """Fetches a single project by its ID from the Supabase 'projects' table."""
+    if not project_id:
+        logger.warning("fetch_project_by_id called without project_id")
+        return None
+    
+    try:
+        response: APIResponse = client.table('projects') \
+                                     .select('*') \
+                                     .eq('project_id', project_id) \
+                                     .limit(1) \
+                                     .maybe_single() \
+                                     .execute()
+        
+        # .maybe_single() returns None if no row is found, or the single row dict
+        if response.data:
+            logger.info(f"Successfully fetched project with ID: {project_id}")
+            return response.data
+        else:
+            logger.warning(f"Project with ID {project_id} not found.")
+            return None 
+            
+    except Exception as e:
+        logger.error(f"An unexpected error occurred fetching project {project_id}: {e}", exc_info=True)
+        # Depending on how you want to handle errors upstream, you might raise here
+        raise # Re-raise the exception to be handled by the endpoint
+
 async def count_projects(client: Client) -> int:
     """Counts the total number of projects in the Supabase 'projects' table."""
     try:

@@ -1,4 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useView } from "@/contexts/ViewContext";
+import { getProjectDetails, ProjectData } from "@/lib/apiClient";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -24,21 +30,147 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
+const formatValue = (
+  value: any,
+  unit: string = "",
+  precision: number = 2
+): string => {
+  if (value === null || typeof value === "undefined") return "-";
+  if (typeof value === "number") {
+    const effectivePrecision =
+      Number.isInteger(value) && precision <= 0 ? 0 : precision;
+    return `${value.toFixed(effectivePrecision)}${unit ? ` ${unit}` : ""}`;
+  }
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (value instanceof Date) return value.toLocaleDateString();
+  if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "-";
+  return String(value);
+};
+
+const DetailItem: React.FC<{
+  label: string;
+  value: any;
+  unit?: string;
+  className?: string;
+  precision?: number;
+}> = ({ label, value, unit, className, precision }) => (
+  <div className={className}>
+    <Label className="text-xs text-muted-foreground">{label}</Label>
+    <p className="text-sm font-medium">{formatValue(value, unit, precision)}</p>
+  </div>
+);
+
 const ProjectOverview = () => {
+  const { activeProjectId } = useView();
+  const [projectData, setProjectData] = useState<ProjectData | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadProjectData = async () => {
+      if (!activeProjectId) {
+        setError("No active project selected.");
+        setIsLoading(false);
+        setProjectData(null);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+      setProjectData(null);
+
+      try {
+        console.log(`Fetching data for project ID: ${activeProjectId}`);
+        const data = await getProjectDetails(activeProjectId);
+        setProjectData(data);
+      } catch (err) {
+        console.error("Error loading project details:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to load project details"
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProjectData();
+  }, [activeProjectId]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+          <Skeleton className="h-9 w-3/4 md:w-1/2 mb-2" />
+          <Skeleton className="h-9 w-48" />
+        </div>
+        <Skeleton className="h-10 w-64 mb-4" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+        <Skeleton className="h-48 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!projectData) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <Alert variant="default" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No Project Data</AlertTitle>
+          <AlertDescription>
+            {activeProjectId
+              ? "Could not load data for the selected project."
+              : "Please select a project to view its overview."}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const isBessProject = projectData.type_of_plant?.includes("BESS");
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold text-energy-blue">
-              New York BESS Project
+              {projectData.name}
             </h1>
-            <Badge variant="outline" className="ml-2">
-              BESS
-            </Badge>
+            {projectData.type_of_plant &&
+              projectData.type_of_plant.length > 0 && (
+                <Badge variant="outline" className="ml-2">
+                  {projectData.type_of_plant.join(" + ")}
+                </Badge>
+              )}
           </div>
           <p className="text-muted-foreground mt-1">
-            100MW / 400MWh Battery Energy Storage System
+            {`${formatValue(projectData.nominal_power_capacity, "MW", 0)}`}
+            {isBessProject
+              ? ` / ${formatValue(
+                  projectData.nominal_energy_capacity,
+                  "MWh",
+                  0
+                )}`
+              : ""}
+            {` ${projectData.technology || "Project"} in ${
+              projectData.location || projectData.country || "N/A"
+            }`}
           </p>
         </div>
         <div className="flex items-center gap-2 mt-4 md:mt-0">
@@ -46,11 +178,12 @@ const ProjectOverview = () => {
             variant="outline"
             size="sm"
             className="flex items-center gap-2"
+            disabled
           >
             <Edit3 size={16} />
             <span>Edit Details</span>
           </Button>
-          <Button size="sm" className="flex items-center gap-2">
+          <Button size="sm" className="flex items-center gap-2" disabled>
             <BarChart3 size={16} />
             <span>Run Simulation</span>
           </Button>
@@ -60,8 +193,6 @@ const ProjectOverview = () => {
       <Tabs defaultValue="details" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="details">Project Details</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline</TabsTrigger>
-          <TabsTrigger value="team">Team</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="space-y-6">
@@ -75,34 +206,85 @@ const ProjectOverview = () => {
               </CardHeader>
               <CardContent>
                 <dl className="space-y-2">
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">Power Rating</dt>
-                    <dd className="font-medium">100 MW</dd>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">Energy Capacity</dt>
-                    <dd className="font-medium">400 MWh</dd>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">Duration</dt>
-                    <dd className="font-medium">4 hours</dd>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">
-                      Round-Trip Efficiency
-                    </dt>
-                    <dd className="font-medium">87%</dd>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">Battery Chemistry</dt>
-                    <dd className="font-medium">Lithium-Ion NMC</dd>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">
-                      Degradation per Year
-                    </dt>
-                    <dd className="font-medium">2.0%</dd>
-                  </div>
+                  <DetailItem
+                    label="Power Rating"
+                    value={projectData.nominal_power_capacity}
+                    unit="MW"
+                    precision={0}
+                  />
+                  {isBessProject && (
+                    <>
+                      <DetailItem
+                        label="Energy Capacity"
+                        value={projectData.nominal_energy_capacity}
+                        unit="MWh"
+                        precision={0}
+                      />
+                      <DetailItem
+                        label="Duration"
+                        value={
+                          (projectData.nominal_energy_capacity ?? 0) /
+                          (projectData.nominal_power_capacity ?? 1)
+                        }
+                        unit="hours"
+                        precision={1}
+                      />
+                      <DetailItem
+                        label="Max Charging Power"
+                        value={projectData.max_charging_power}
+                        unit="MW"
+                        precision={0}
+                      />
+                      <DetailItem
+                        label="Charging Efficiency"
+                        value={projectData.charging_efficiency}
+                        unit="%"
+                        precision={1}
+                      />
+                      <DetailItem
+                        label="Max SoC"
+                        value={projectData.max_soc}
+                        unit="%"
+                        precision={1}
+                      />
+                      <DetailItem
+                        label="Min SoC"
+                        value={projectData.min_soc}
+                        unit="%"
+                        precision={1}
+                      />
+                    </>
+                  )}
+                  <DetailItem
+                    label="Max Discharging Power"
+                    value={projectData.max_discharging_power}
+                    unit="MW"
+                    precision={0}
+                  />
+                  <DetailItem
+                    label="Discharging Efficiency"
+                    value={projectData.discharging_efficiency}
+                    unit="%"
+                    precision={1}
+                  />
+                  <DetailItem
+                    label="Technology"
+                    value={projectData.technology}
+                  />
+                  <DetailItem
+                    label="Calendar Lifetime"
+                    value={projectData.calendar_lifetime}
+                    unit="Years"
+                    precision={0}
+                  />
+                  {isBessProject && (
+                    <DetailItem
+                      label="Cycling Lifetime"
+                      value={projectData.cycling_lifetime}
+                      unit="Cycles"
+                      precision={0}
+                    />
+                  )}
                 </dl>
               </CardContent>
             </Card>
@@ -116,30 +298,46 @@ const ProjectOverview = () => {
               </CardHeader>
               <CardContent>
                 <dl className="space-y-2">
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">Capital Cost</dt>
-                    <dd className="font-medium">$320M</dd>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">Capex ($/kWh)</dt>
-                    <dd className="font-medium">$800/kWh</dd>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">Annual O&M</dt>
-                    <dd className="font-medium">$2.5M</dd>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">Project Lifetime</dt>
-                    <dd className="font-medium">20 years</dd>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">Discount Rate</dt>
-                    <dd className="font-medium">8.0%</dd>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">Tax Rate</dt>
-                    <dd className="font-medium">21%</dd>
-                  </div>
+                  <DetailItem
+                    label="Total CAPEX"
+                    value={projectData.capex_tot}
+                    unit="$"
+                    precision={0}
+                  />
+                  <DetailItem
+                    label="CAPEX (Power)"
+                    value={projectData.capex_power}
+                    unit="$/kW"
+                    precision={0}
+                  />
+                  {isBessProject && (
+                    <DetailItem
+                      label="CAPEX (Energy)"
+                      value={projectData.capex_energy}
+                      unit="$/kWh"
+                      precision={0}
+                    />
+                  )}
+                  <DetailItem
+                    label="Total OPEX (Yearly)"
+                    value={projectData.opex_yr}
+                    unit="$/yr"
+                    precision={0}
+                  />
+                  <DetailItem
+                    label="OPEX (Power / Year)"
+                    value={projectData.opex_power_yr}
+                    unit="$/kW/yr"
+                    precision={0}
+                  />
+                  {isBessProject && (
+                    <DetailItem
+                      label="OPEX (Energy / Year)"
+                      value={projectData.opex_energy_yr}
+                      unit="$/kWh/yr"
+                      precision={0}
+                    />
+                  )}
                 </dl>
               </CardContent>
             </Card>
@@ -148,109 +346,42 @@ const ProjectOverview = () => {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Zap className="h-5 w-5 text-energy-yellow" />
-                  Market Participation
+                  Market Information
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="space-y-2">
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">ISO/RTO</dt>
-                    <dd className="font-medium">NYISO</dd>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">Zone</dt>
-                    <dd className="font-medium">Zone J (NYC)</dd>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <dt className="text-muted-foreground">Revenue Streams</dt>
-                    <dd className="font-medium">4</dd>
-                  </div>
-                  <div className="flex items-center py-1">
-                    <dt className="text-muted-foreground flex items-center gap-1.5">
-                      <Check size={14} className="text-energy-green" />
-                      Energy Arbitrage
-                    </dt>
-                  </div>
-                  <div className="flex items-center py-1">
-                    <dt className="text-muted-foreground flex items-center gap-1.5">
-                      <Check size={14} className="text-energy-green" />
-                      Frequency Regulation
-                    </dt>
-                  </div>
-                  <div className="flex items-center py-1">
-                    <dt className="text-muted-foreground flex items-center gap-1.5">
-                      <Check size={14} className="text-energy-green" />
-                      Capacity Market
-                    </dt>
-                  </div>
-                  <div className="flex items-center py-1">
-                    <dt className="text-muted-foreground flex items-center gap-1.5">
-                      <Check size={14} className="text-energy-green" />
-                      Demand Response
-                    </dt>
+                  <DetailItem label="Country" value={projectData.country} />
+                  <DetailItem label="Location" value={projectData.location} />
+
+                  <div className="pt-2">
+                    <Label className="text-xs text-muted-foreground">
+                      Revenue Streams
+                    </Label>
+                    {projectData.revenue_streams &&
+                    projectData.revenue_streams.length > 0 ? (
+                      <ul className="mt-1 space-y-1">
+                        {projectData.revenue_streams.map((stream) => (
+                          <li
+                            key={stream}
+                            className="flex items-center text-sm"
+                          >
+                            <Check
+                              size={14}
+                              className="mr-2 text-energy-green flex-shrink-0"
+                            />
+                            <span>{stream}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm">-</p>
+                    )}
                   </div>
                 </dl>
               </CardContent>
             </Card>
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Info className="h-5 w-5 text-primary" />
-                Project Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <div className="text-sm font-medium">
-                      Overall Completion
-                    </div>
-                    <div className="text-sm text-muted-foreground">65%</div>
-                  </div>
-                  <Progress value={65} className="h-2" />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <div className="text-sm font-medium">Project Setup</div>
-                      <div className="text-sm text-muted-foreground">100%</div>
-                    </div>
-                    <Progress value={100} className="h-2" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <div className="text-sm font-medium">Dispatch Logic</div>
-                      <div className="text-sm text-muted-foreground">80%</div>
-                    </div>
-                    <Progress value={80} className="h-2" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <div className="text-sm font-medium">Revenue Streams</div>
-                      <div className="text-sm text-muted-foreground">75%</div>
-                    </div>
-                    <Progress value={75} className="h-2" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <div className="text-sm font-medium">
-                        Financial Analysis
-                      </div>
-                      <div className="text-sm text-muted-foreground">40%</div>
-                    </div>
-                    <Progress value={40} className="h-2" />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
@@ -259,18 +390,8 @@ const ProjectOverview = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  This project involves the development of a 100MW/400MWh
-                  Battery Energy Storage System (BESS) located in New York City
-                  (NYISO Zone J). The system will primarily participate in
-                  energy arbitrage, frequency regulation, capacity markets, and
-                  demand response programs available in the NYISO market.
-                </p>
-                <p className="text-sm text-muted-foreground mt-4">
-                  The project aims to capture value from high price volatility
-                  in the NYC area while providing grid stability services. The
-                  battery system will employ smart dispatch algorithms to
-                  optimize revenue across multiple value streams while managing
-                  battery degradation.
+                  {projectData.description ||
+                    "No detailed description provided."}
                 </p>
               </CardContent>
             </Card>
@@ -280,269 +401,13 @@ const ProjectOverview = () => {
                 <CardTitle className="text-lg">Key Assumptions</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <div className="rounded-full bg-primary/10 p-1 mt-0.5">
-                      <Check size={12} className="text-primary" />
-                    </div>
-                    <span>
-                      Historical NYISO price data from 2022-2023 used for
-                      forecasting
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <div className="rounded-full bg-primary/10 p-1 mt-0.5">
-                      <Check size={12} className="text-primary" />
-                    </div>
-                    <span>
-                      2% annual price escalation applied to energy prices
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <div className="rounded-full bg-primary/10 p-1 mt-0.5">
-                      <Check size={12} className="text-primary" />
-                    </div>
-                    <span>Battery capacity degradation of 2% per year</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <div className="rounded-full bg-primary/10 p-1 mt-0.5">
-                      <Check size={12} className="text-primary" />
-                    </div>
-                    <span>ITC benefit of 30% applied to capital cost</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <div className="rounded-full bg-primary/10 p-1 mt-0.5">
-                      <Check size={12} className="text-primary" />
-                    </div>
-                    <span>
-                      20-year project lifetime with no major component
-                      replacements
-                    </span>
-                  </li>
-                </ul>
+                <p className="text-sm text-muted-foreground italic">
+                  (Assumption details are not currently stored per project -
+                  this section can be developed later)
+                </p>
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        <TabsContent value="timeline" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                Project Timeline
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="relative">
-                <div className="absolute top-0 bottom-0 left-[15px] w-[1px] bg-border"></div>
-
-                <div className="space-y-6">
-                  <div className="relative pl-10">
-                    <div className="absolute left-0 top-1 w-[30px] h-[30px] rounded-full bg-energy-green flex items-center justify-center">
-                      <Check className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm font-semibold">
-                        Project Initiation
-                      </div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock size={12} />
-                        <span>January 15, 2023</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Project scope defined and initial system parameters
-                        established.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="relative pl-10">
-                    <div className="absolute left-0 top-1 w-[30px] h-[30px] rounded-full bg-energy-green flex items-center justify-center">
-                      <Check className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm font-semibold">
-                        Market Analysis Completed
-                      </div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock size={12} />
-                        <span>March 10, 2023</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Comprehensive analysis of NYISO market structure and
-                        opportunities.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="relative pl-10">
-                    <div className="absolute left-0 top-1 w-[30px] h-[30px] rounded-full bg-energy-blue flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm font-semibold">
-                        Dispatch Logic Development
-                      </div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock size={12} />
-                        <span>In Progress - 80% Complete</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Development of optimization algorithms for dispatch
-                        across multiple revenue streams.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="relative pl-10">
-                    <div className="absolute left-0 top-1 w-[30px] h-[30px] rounded-full bg-energy-blue flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm font-semibold">
-                        Revenue Modeling
-                      </div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock size={12} />
-                        <span>In Progress - 75% Complete</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Revenue forecasting for all identified value streams.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="relative pl-10">
-                    <div className="absolute left-0 top-1 w-[30px] h-[30px] rounded-full bg-muted flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm font-semibold">
-                        Financial Analysis
-                      </div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock size={12} />
-                        <span>In Progress - 40% Complete</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Comprehensive financial modeling and sensitivity
-                        analysis.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="relative pl-10">
-                    <div className="absolute left-0 top-1 w-[30px] h-[30px] rounded-full bg-muted flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm font-semibold">
-                        Final Decision Gate
-                      </div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock size={12} />
-                        <span>Scheduled - September 30, 2023</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Final investment decision based on complete
-                        techno-economic analysis.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="team" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <User className="h-5 w-5 text-primary" />
-                Project Team
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">Sarah Chen</div>
-                    <div className="text-sm text-muted-foreground">
-                      Project Manager
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      sarah.chen@example.com
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-energy-blue/10 flex items-center justify-center">
-                    <Zap className="h-5 w-5 text-energy-blue" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">Michael Rodriguez</div>
-                    <div className="text-sm text-muted-foreground">
-                      Energy Market Analyst
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      m.rodriguez@example.com
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-energy-green/10 flex items-center justify-center">
-                    <Battery className="h-5 w-5 text-energy-green" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">Emma Wilson</div>
-                    <div className="text-sm text-muted-foreground">
-                      Battery Systems Engineer
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      e.wilson@example.com
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-energy-yellow/10 flex items-center justify-center">
-                    <DollarSign className="h-5 w-5 text-energy-yellow" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">James Kim</div>
-                    <div className="text-sm text-muted-foreground">
-                      Financial Analyst
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      j.kim@example.com
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <BarChart3 className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">Aisha Patel</div>
-                    <div className="text-sm text-muted-foreground">
-                      Data Scientist
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      a.patel@example.com
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

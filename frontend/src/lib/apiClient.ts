@@ -227,3 +227,43 @@ export const getDashboardSummary = async (): Promise<DashboardSummaryData> => {
 };
 
 // You can add other API functions here (e.g., getProjectsForPipeline, etc.)
+
+/**
+ * Fetches details for a specific project from the backend API.
+ * @param projectId - The ID of the project.
+ * @returns A promise that resolves to ProjectData.
+ * @throws An error if the network response is not ok or projectId is missing.
+ */
+export const getProjectDetails = async (
+  projectId: string | null
+): Promise<ProjectData> => {
+  if (!projectId) {
+    console.error("getProjectDetails called without projectId");
+    // Throw an error that can be caught by the calling component
+    throw new Error("Project ID is required to fetch details.");
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}`);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      // Handle 404 specifically
+      if (response.status === 404) {
+        console.warn(`Project with ID ${projectId} not found.`);
+        throw new Error(`Project not found (ID: ${projectId}).`);
+      }
+      const errorMessage =
+        errorData?.detail || `HTTP error! status: ${response.status}`;
+      console.error("Error fetching project details:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data: ProjectData = await response.json();
+    console.log(`Fetched details for project ${projectId}:`, data); // For debugging
+    return data;
+  } catch (error) {
+    console.error(`Failed to fetch details for project ${projectId}:`, error);
+    throw error; // Re-throw so the component can handle it
+  }
+};

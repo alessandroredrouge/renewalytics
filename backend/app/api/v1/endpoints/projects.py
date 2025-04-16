@@ -4,7 +4,12 @@ import logging
 from typing import List
 
 # Import Supabase functions and client getter
-from app.services.supabase_client import get_supabase_client, insert_project, fetch_projects_for_pipeline
+from app.services.supabase_client import (
+    get_supabase_client, 
+    insert_project, 
+    fetch_projects_for_pipeline,
+    fetch_project_by_id
+)
 # Import schemas
 from app.schemas.projects_schema import ProjectCreate, ProjectResponse
 
@@ -49,4 +54,23 @@ async def get_projects(
         logger.error(f"Error fetching projects for pipeline {pipeline_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error fetching projects")
 
-# TODO: Add GET /{project_id} endpoint later
+# GET endpoint for a single project by ID
+@router.get("/{project_id}", response_model=ProjectResponse)
+async def get_project_details(
+    project_id: str,
+    supabase_client: Client = Depends(get_supabase_client)
+):
+    """Endpoint to fetch details for a specific project by its ID."""
+    logger.info(f"Received request to get details for project_id: {project_id}")
+    try:
+        project = await fetch_project_by_id(supabase_client, project_id)
+        if project is None:
+            logger.warning(f"Project {project_id} not found in database.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+        # FastAPI will validate the dict against ProjectResponse
+        return project
+    except HTTPException as http_exc: # Re-raise HTTP exceptions explicitly
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Error fetching project {project_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error fetching project details")
