@@ -24,7 +24,7 @@ def get_supabase_client() -> Client:
 async def fetch_pipelines(client: Client) -> list[dict]:
     """Fetches all pipelines from the Supabase 'pipelines' table."""
     try:
-        response: APIResponse = await client.table('pipelines').select('pipeline_id, name, description, countries').execute()
+        response: APIResponse = client.table('pipelines').select('pipeline_id, name, description, countries').execute()
         # Check for Postgrest errors
         if not response.data:
              # Handle cases where data might be empty vs actual error if needed
