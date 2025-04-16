@@ -10,6 +10,13 @@ interface PipelineData {
   // created_at?: string; // Add if needed later
 }
 
+// Define interface for data sent to create a pipeline
+interface CreatePipelineData {
+  name: string;
+  description?: string; // Optional based on schema
+  countries?: string[]; // Optional based on schema
+}
+
 /**
  * Fetches the list of pipelines from the backend API.
  * @returns A promise that resolves to an array of PipelineData.
@@ -38,4 +45,41 @@ export const getPipelines = async (): Promise<PipelineData[]> => {
   }
 };
 
-// You can add other API functions here (e.g., getProjectsForPipeline, createPipeline, etc.)
+/**
+ * Creates a new pipeline via the backend API.
+ * @param pipelineData - The data for the new pipeline.
+ * @returns A promise that resolves to the newly created pipeline data.
+ * @throws An error if the network response is not ok.
+ */
+export const createPipeline = async (
+  pipelineData: CreatePipelineData
+): Promise<PipelineData> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/pipelines/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Add Authorization header if needed: 'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(pipelineData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData?.detail || `HTTP error! status: ${response.status}`;
+      console.error("Error creating pipeline:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const createdPipeline: PipelineData = await response.json();
+    console.log("Created pipeline:", createdPipeline); // For debugging
+    return createdPipeline;
+  } catch (error) {
+    console.error("Failed to create pipeline:", error);
+    // Re-throw the error so the calling component/modal can handle it
+    throw error;
+  }
+};
+
+// You can add other API functions here (e.g., getProjectsForPipeline, etc.)

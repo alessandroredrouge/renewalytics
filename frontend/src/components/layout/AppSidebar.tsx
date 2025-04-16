@@ -36,7 +36,7 @@ const AppSidebar = () => {
       path: "/",
     },
     {
-      title: "Pipelines",
+      title: "Pipelines & Projects",
       icon: FolderGit2,
       path: "/pipeline",
     },

@@ -24,7 +24,7 @@ def get_supabase_client() -> Client:
 async def fetch_pipelines(client: Client) -> list[dict]:
     """Fetches all pipelines from the Supabase 'pipelines' table."""
     try:
-        response: APIResponse = client.table('pipelines').select('pipeline_id, name, description, countries').execute()
+        response: APIResponse = client.table('pipelines').select('*').execute()
         # Check for Postgrest errors
         if not response.data:
              # Handle cases where data might be empty vs actual error if needed
@@ -40,3 +40,24 @@ async def fetch_pipelines(client: Client) -> list[dict]:
         # Depending on requirements, you might want to raise the exception
         # or return an empty list/handle it differently.
         return []
+
+async def insert_pipeline(client: Client, pipeline_data: dict) -> dict:
+    """Inserts a new pipeline into the Supabase 'pipelines' table."""
+    try:
+        response: APIResponse = client.table('pipelines').insert(pipeline_data).execute()
+        # Check for Postgrest errors
+        if not response.data:
+            if hasattr(response, 'error') and response.error:
+                 print(f"Error inserting pipeline: {response.error}")
+                 # Rethrow or raise a custom exception based on error handling strategy
+                 raise Exception(f"Database error: {response.error.message}")
+            # Handle unexpected cases where data is empty without an error
+            raise Exception("No data returned after insert, although no explicit error was reported.")
+
+        print(f"Successfully inserted pipeline: {response.data[0]}")
+        # Supabase insert typically returns a list containing the inserted record
+        return response.data[0]
+    except Exception as e:
+        print(f"An unexpected error occurred during pipeline insert: {e}")
+        # Re-raise the exception to be handled by the API endpoint
+        raise

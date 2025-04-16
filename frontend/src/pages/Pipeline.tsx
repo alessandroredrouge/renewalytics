@@ -45,7 +45,8 @@ import {
   SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
-import { getPipelines } from "@/lib/apiClient";
+import { getPipelines, createPipeline } from "@/lib/apiClient";
+import { NewPipelineModal } from "@/components/modals/newPipelineModal";
 
 // Define interface for Pipeline data
 interface PipelineData {
@@ -152,6 +153,8 @@ const Pipeline = () => {
   const [pipelines, setPipelines] = useState<PipelineData[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // State for modal visibility
+  const [isNewPipelineModalOpen, setIsNewPipelineModalOpen] = useState(false);
 
   // Initialize selectedPipelineId to null, it will be set after data loads
   const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(
@@ -236,6 +239,40 @@ const Pipeline = () => {
     }
   };
 
+  // Function to refresh pipelines list
+  const refreshPipelines = async () => {
+    setIsLoading(true); // Optional: show loading indicator during refresh
+    try {
+      const fetchedPipelines = await getPipelines();
+      setPipelines(fetchedPipelines);
+      // Optionally re-select the first pipeline or maintain selection if needed
+      if (fetchedPipelines.length > 0 && !selectedPipelineId) {
+        setSelectedPipelineId(fetchedPipelines[0].pipeline_id);
+      }
+    } catch (err) {
+      console.error("Failed to refresh pipelines:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to refresh pipelines"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle submission from the modal
+  const handlePipelineSubmit = async (data: {
+    name: string;
+    description: string;
+    countries: string[];
+  }) => {
+    console.log("Submitting new pipeline:", data);
+    // No need for separate loading/error state here, modal handles it
+    // Error thrown by createPipeline will be caught by the modal's handleSubmit
+    await createPipeline(data);
+    // Refresh the pipeline list after successful creation
+    await refreshPipelines();
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Loading State */}
@@ -293,7 +330,7 @@ const Pipeline = () => {
                   size="sm"
                   variant="default"
                   className="flex items-center gap-2"
-                  // TODO: Add onClick handler for creating a new pipeline
+                  onClick={() => setIsNewPipelineModalOpen(true)}
                 >
                   <FolderPlus size={16} />
                   <span>New Pipeline</span>
@@ -706,6 +743,13 @@ const Pipeline = () => {
           )}
         </>
       )}
+
+      {/* Render the modal */}
+      <NewPipelineModal
+        isOpen={isNewPipelineModalOpen}
+        onClose={() => setIsNewPipelineModalOpen(false)}
+        onSubmit={handlePipelineSubmit}
+      />
     </div>
   );
 };
