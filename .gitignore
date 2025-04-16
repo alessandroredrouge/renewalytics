@@ -34,3 +34,7 @@ main.cpython-311.pyc
 
 # Cursor rules
 .cursor
+
+# Environment variables
+.env
+

@@ -1,5 +1,16 @@
-fastapi==0.109.2
-uvicorn==0.27.1
-requests==2.31.0
+# FastAPI
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# Environment variables
+python-dotenv==1.0.1
+
+# Machine Learning
 pandas==2.2.0
 numpy==1.26.0
+
+# Database
+supabase==2.10.0
+
+# Other dependencies
+requests==2.31.0
