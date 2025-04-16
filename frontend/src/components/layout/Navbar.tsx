@@ -1,112 +1,110 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import {
-  HelpCircle,
-  Settings,
-  User,
-  ChevronDown,
-  LayoutDashboard,
-  FolderKanban,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { LayoutDashboard, Plus, X } from "lucide-react";
 import { useView } from "@/contexts/ViewContext";
+import { SelectProjectModal } from "@/components/modals/selectProjectModal";
+
+interface OpenedProject {
+  id: string;
+  name: string;
+}
 
 const Navbar = () => {
-  const { view, setView } = useView();
+  const { setView, setActiveProjectId } = useView();
+  const [openedProjects, setOpenedProjects] = useState<OpenedProject[]>([]);
+  const [activeView, setActiveView] = useState<string | "general">("general");
+  const [isSelectProjectModalOpen, setIsSelectProjectModalOpen] =
+    useState(false);
 
-  const handleViewChange = (newView: "general" | "project") => {
-    setView(newView);
+  const handleGeneralViewClick = () => {
+    setActiveView("general");
+    setView("general");
+    setActiveProjectId(null);
+  };
+
+  const handleProjectTabClick = (projectId: string) => {
+    setActiveView(projectId);
+    setView("project");
+    setActiveProjectId(projectId);
+  };
+
+  const handleOpenProjectModal = () => {
+    setIsSelectProjectModalOpen(true);
+  };
+
+  const handleCloseProjectModal = () => {
+    setIsSelectProjectModalOpen(false);
+  };
+
+  const handleProjectSelect = (project: OpenedProject) => {
+    if (!openedProjects.some((p) => p.id === project.id)) {
+      setOpenedProjects([...openedProjects, project]);
+    }
+    handleProjectTabClick(project.id);
+    setIsSelectProjectModalOpen(false);
+  };
+
+  const handleCloseProjectTab = (
+    projectIdToClose: string,
+    event: React.MouseEvent
+  ) => {
+    event.stopPropagation();
+    setOpenedProjects(openedProjects.filter((p) => p.id !== projectIdToClose));
+
+    if (activeView === projectIdToClose) {
+      handleGeneralViewClick();
+    }
   };
 
   return (
     <header className="border-b bg-card h-16 flex items-center px-4 justify-between">
-      <div className="flex items-center">
+      <div className="flex items-center flex-grow min-w-0">
         <SidebarTrigger />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        <Button
+          variant={activeView === "general" ? "secondary" : "ghost"}
+          className="font-medium ml-4 text-sm h-8 px-3 shrink-0"
+          onClick={handleGeneralViewClick}
+        >
+          <LayoutDashboard size={16} className="mr-2" />
+          General View
+        </Button>
+
+        <div className="flex items-center space-x-1 ml-1 overflow-x-auto scrollbar-hide">
+          {openedProjects.map((project) => (
             <Button
-              variant="ghost"
-              className="font-montserrat text-xl font-bold ml-4 text-energy-blue hidden md:flex items-center gap-1 px-2"
+              key={project.id}
+              variant={activeView === project.id ? "secondary" : "ghost"}
+              className="font-medium text-sm h-8 px-3 relative group whitespace-nowrap shrink-0"
+              onClick={() => handleProjectTabClick(project.id)}
             >
-              {view === "general" ? (
-                <>
-                  <LayoutDashboard size={18} className="mr-1" /> General View
-                </>
-              ) : (
-                <>
-                  <FolderKanban size={18} className="mr-1" /> Project View
-                </>
-              )}
-              <ChevronDown size={16} className="ml-1 opacity-70" />
+              <span>{project.name}</span>
+              <button
+                onClick={(e) => handleCloseProjectTab(project.id, e)}
+                className="absolute top-1/2 right-1 transform -translate-y-1/2 p-0.5 rounded-full hover:bg-muted-foreground/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label={`Close project ${project.name}`}
+              >
+                <X size={12} />
+              </button>
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="ml-4 md:ml-0">
-            <DropdownMenuLabel>Select View</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => handleViewChange("general")}
-              disabled={view === "general"}
-            >
-              <LayoutDashboard size={16} className="mr-2" />
-              General View
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleViewChange("project")}
-              disabled={view === "project"}
-            >
-              <FolderKanban size={16} className="mr-2" />
-              Project View
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          ))}
+        </div>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="ml-2 h-8 w-8 shrink-0"
+          onClick={handleOpenProjectModal}
+        >
+          <Plus size={18} />
+        </Button>
       </div>
 
-      <div className="flex items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="ml-2">
-              <HelpCircle className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>Documentation</DropdownMenuItem>
-            <DropdownMenuItem>Tutorial</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Settings className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>Preferences</DropdownMenuItem>
-            <DropdownMenuItem>API Settings</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="ml-1">
-              <User className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Sign Out</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      <SelectProjectModal
+        isOpen={isSelectProjectModalOpen}
+        onClose={handleCloseProjectModal}
+        onProjectSelect={handleProjectSelect}
+      />
     </header>
   );
 };
