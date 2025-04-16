@@ -45,8 +45,12 @@ import {
   SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
-import { getPipelines, createPipeline } from "@/lib/apiClient";
+import { getPipelines, createPipeline, createProject } from "@/lib/apiClient";
 import { NewPipelineModal } from "@/components/modals/newPipelineModal";
+import {
+  NewProjectModal,
+  ProjectCreateData,
+} from "@/components/modals/newProjectModal";
 
 // Define interface for Pipeline data
 interface PipelineData {
@@ -155,6 +159,7 @@ const Pipeline = () => {
   const [error, setError] = useState<string | null>(null);
   // State for modal visibility
   const [isNewPipelineModalOpen, setIsNewPipelineModalOpen] = useState(false);
+  const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
 
   // Initialize selectedPipelineId to null, it will be set after data loads
   const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(
@@ -259,18 +264,28 @@ const Pipeline = () => {
     }
   };
 
-  // Handle submission from the modal
+  // Handle NEW PIPELINE submission
   const handlePipelineSubmit = async (data: {
     name: string;
     description: string;
     countries: string[];
   }) => {
     console.log("Submitting new pipeline:", data);
-    // No need for separate loading/error state here, modal handles it
-    // Error thrown by createPipeline will be caught by the modal's handleSubmit
     await createPipeline(data);
-    // Refresh the pipeline list after successful creation
-    await refreshPipelines();
+    await refreshPipelines(); // Refresh list after creation
+  };
+
+  // Handle NEW PROJECT submission
+  const handleProjectSubmit = async (data: ProjectCreateData) => {
+    // The pipelineId is already included in the data from the modal
+    console.log("Submitting new project:", data);
+    // Error thrown by createProject will be caught by the modal's handleSubmit
+    await createProject(data);
+    // TODO: Refresh the project list for the current pipeline after successful creation
+    console.log(
+      "Project created successfully. Need to implement project list refresh."
+    );
+    // Example: await refreshProjectsForPipeline(selectedPipelineId);
   };
 
   return (
@@ -432,11 +447,14 @@ const Pipeline = () => {
                     <SortAsc size={16} />
                     <span>Sort</span>
                   </Button>
-                  <Button size="sm" asChild className="flex items-center gap-2">
-                    <Link to="/project-input">
-                      <FolderPlus size={16} />
-                      <span>New Project</span>
-                    </Link>
+                  <Button
+                    size="sm"
+                    className="flex items-center gap-2"
+                    onClick={() => setIsNewProjectModalOpen(true)}
+                    disabled={!selectedPipelineId}
+                  >
+                    <FolderPlus size={16} />
+                    <span>New Project</span>
                   </Button>
                 </div>
               </div>
@@ -744,11 +762,17 @@ const Pipeline = () => {
         </>
       )}
 
-      {/* Render the modal */}
+      {/* Render the modals */}
       <NewPipelineModal
         isOpen={isNewPipelineModalOpen}
         onClose={() => setIsNewPipelineModalOpen(false)}
         onSubmit={handlePipelineSubmit}
+      />
+      <NewProjectModal
+        isOpen={isNewProjectModalOpen}
+        onClose={() => setIsNewProjectModalOpen(false)}
+        onSubmit={handleProjectSubmit}
+        pipelineId={selectedPipelineId}
       />
     </div>
   );

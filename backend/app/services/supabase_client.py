@@ -61,3 +61,21 @@ async def insert_pipeline(client: Client, pipeline_data: dict) -> dict:
         print(f"An unexpected error occurred during pipeline insert: {e}")
         # Re-raise the exception to be handled by the API endpoint
         raise
+
+async def insert_project(client: Client, project_data: dict) -> dict:
+    """Inserts a new project into the Supabase 'projects' table."""
+    try:
+        # We expect project_data to be a dict based on ProjectCreate schema
+        response: APIResponse = client.table('projects').insert(project_data).execute()
+        
+        if not response.data:
+            if hasattr(response, 'error') and response.error:
+                 print(f"Error inserting project: {response.error}")
+                 raise Exception(f"Database error: {response.error.message}")
+            raise Exception("No data returned after project insert, although no explicit error was reported.")
+
+        print(f"Successfully inserted project: {response.data[0].get('name')}") 
+        return response.data[0]
+    except Exception as e:
+        print(f"An unexpected error occurred during project insert: {e}")
+        raise

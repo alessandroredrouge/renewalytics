@@ -12,9 +12,6 @@ from app.schemas.pipelines_schema import PipelineCreate, PipelineResponse
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- Pydantic Schemas --- 
-# Removed from here - now in schemas/pipelines_schema.py
-
 # --- Router --- 
 router = APIRouter()
 

@@ -41,11 +41,6 @@ const AppSidebar = () => {
       path: "/pipeline",
     },
     {
-      title: "New Project",
-      icon: Database,
-      path: "/project-input",
-    },
-    {
       title: "Settings",
       icon: Settings,
       path: "/settings",

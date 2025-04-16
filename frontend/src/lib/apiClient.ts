@@ -17,6 +17,21 @@ interface CreatePipelineData {
   countries?: string[]; // Optional based on schema
 }
 
+// Interface for the data structure returned for a created project (adapt if needed)
+// This might be the same as ProjectResponse from the backend schema, or a subset
+interface ProjectData {
+  project_id: string;
+  pipeline_id: string;
+  name: string;
+  description?: string | null;
+  country?: string | null;
+  // ... add other fields as returned by your backend ProjectResponse schema ...
+  created_at: string; // Assuming string from JSON
+}
+
+// Interface for data needed by the createProject function, matching modal's output
+import { ProjectCreateData } from "@/components/modals/newProjectModal";
+
 /**
  * Fetches the list of pipelines from the backend API.
  * @returns A promise that resolves to an array of PipelineData.
@@ -78,6 +93,43 @@ export const createPipeline = async (
   } catch (error) {
     console.error("Failed to create pipeline:", error);
     // Re-throw the error so the calling component/modal can handle it
+    throw error;
+  }
+};
+
+/**
+ * Creates a new project via the backend API.
+ * @param projectData - The data for the new project, including pipeline_id.
+ * @returns A promise that resolves to the newly created project data.
+ * @throws An error if the network response is not ok.
+ */
+export const createProject = async (
+  projectData: ProjectCreateData
+): Promise<ProjectData> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/`, {
+      // Correct endpoint
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Add Authorization header if needed
+      },
+      body: JSON.stringify(projectData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData?.detail || `HTTP error! status: ${response.status}`;
+      console.error("Error creating project:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const createdProject: ProjectData = await response.json();
+    console.log("Created project:", createdProject); // For debugging
+    return createdProject;
+  } catch (error) {
+    console.error("Failed to create project:", error);
     throw error;
   }
 };
