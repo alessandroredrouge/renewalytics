@@ -1,4 +1,5 @@
 import React, { useContext, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Plus, X } from "lucide-react";
@@ -12,6 +13,7 @@ interface OpenedProject {
 
 const Navbar = () => {
   const { setView, setActiveProjectId } = useView();
+  const navigate = useNavigate();
   const [openedProjects, setOpenedProjects] = useState<OpenedProject[]>([]);
   const [activeView, setActiveView] = useState<string | "general">("general");
   const [isSelectProjectModalOpen, setIsSelectProjectModalOpen] =
@@ -21,12 +23,14 @@ const Navbar = () => {
     setActiveView("general");
     setView("general");
     setActiveProjectId(null);
+    navigate("/");
   };
 
   const handleProjectTabClick = (projectId: string) => {
     setActiveView(projectId);
     setView("project");
     setActiveProjectId(projectId);
+    navigate("/project-overview");
   };
 
   const handleOpenProjectModal = () => {
