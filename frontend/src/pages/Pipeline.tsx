@@ -45,12 +45,19 @@ import {
   SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
-import { getPipelines, createPipeline, createProject } from "@/lib/apiClient";
+import {
+  getPipelines,
+  createPipeline,
+  createProject,
+  getProjectsForPipeline,
+  ProjectData,
+} from "@/lib/apiClient";
 import { NewPipelineModal } from "@/components/modals/newPipelineModal";
 import {
   NewProjectModal,
   ProjectCreateData,
 } from "@/components/modals/newProjectModal";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Define interface for Pipeline data
 interface PipelineData {
@@ -155,8 +162,13 @@ const sampleProjects = [
 const Pipeline = () => {
   // State for fetched pipelines, loading, and errors
   const [pipelines, setPipelines] = useState<PipelineData[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isPipelinesLoading, setIsPipelinesLoading] = useState<boolean>(true);
+  const [pipelinesError, setPipelinesError] = useState<string | null>(null);
+
+  const [pipelineProjects, setPipelineProjects] = useState<ProjectData[]>([]);
+  const [isProjectsLoading, setIsProjectsLoading] = useState<boolean>(false);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
+
   // State for modal visibility
   const [isNewPipelineModalOpen, setIsNewPipelineModalOpen] = useState(false);
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
@@ -166,32 +178,83 @@ const Pipeline = () => {
     null
   );
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredProjects, setFilteredProjects] = useState(sampleProjects); // This will be adapted later
+  const filteredProjects = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return pipelineProjects;
+    }
+    const term = searchTerm.toLowerCase();
+    return pipelineProjects.filter(
+      (project) =>
+        project.name.toLowerCase().includes(term) ||
+        (project.description &&
+          project.description.toLowerCase().includes(term)) ||
+        (project.country && project.country.toLowerCase().includes(term)) ||
+        (project.type_of_plant &&
+          project.type_of_plant.some((type) =>
+            type.toLowerCase().includes(term)
+          )) ||
+        (project.technology && project.technology.toLowerCase().includes(term))
+    );
+  }, [pipelineProjects, searchTerm]);
 
   // Fetch pipelines on component mount
   useEffect(() => {
     const loadPipelines = async () => {
-      setIsLoading(true);
-      setError(null);
+      setIsPipelinesLoading(true);
+      setPipelinesError(null);
       try {
         const fetchedPipelines = await getPipelines();
         setPipelines(fetchedPipelines);
-        // Automatically select the first pipeline if data is available
         if (fetchedPipelines.length > 0) {
           setSelectedPipelineId(fetchedPipelines[0].pipeline_id);
+        } else {
+          setIsProjectsLoading(false);
         }
       } catch (err) {
         console.error(err);
-        setError(
+        setPipelinesError(
           err instanceof Error ? err.message : "Failed to load pipelines"
         );
+        setIsProjectsLoading(false);
       } finally {
-        setIsLoading(false);
+        setIsPipelinesLoading(false);
       }
     };
 
     loadPipelines();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []);
+
+  // Fetch projects when selectedPipelineId changes
+  useEffect(() => {
+    const loadProjects = async () => {
+      if (!selectedPipelineId) {
+        setPipelineProjects([]);
+        setIsProjectsLoading(false);
+        return;
+      }
+
+      setIsProjectsLoading(true);
+      setProjectsError(null);
+      try {
+        const fetchedProjects = await getProjectsForPipeline(
+          selectedPipelineId
+        );
+        setPipelineProjects(fetchedProjects);
+      } catch (err) {
+        console.error(err);
+        setProjectsError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load projects for this pipeline"
+        );
+        setPipelineProjects([]);
+      } finally {
+        setIsProjectsLoading(false);
+      }
+    };
+
+    loadProjects();
+  }, [selectedPipelineId]);
 
   // Find the selected pipeline based on ID
   const selectedPipeline = useMemo(() => {
@@ -200,36 +263,19 @@ const Pipeline = () => {
 
   // Handle pipeline selection change
   const handlePipelineChange = (pipelineId: string) => {
-    setSelectedPipelineId(pipelineId);
-    // Reset search and filters when pipeline changes (or fetch new projects later)
     setSearchTerm("");
-    setFilteredProjects(sampleProjects); // Placeholder: reset to all sample projects
-    // TODO: Fetch projects for the selected pipelineId
+    setPipelineProjects([]);
+    setProjectsError(null);
+    setIsProjectsLoading(true);
+    setSelectedPipelineId(pipelineId);
   };
 
   // Filter handlers (simplified for demo)
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const term = e.target.value;
-    setSearchTerm(term);
-
-    if (!term.trim()) {
-      setFilteredProjects(sampleProjects);
-      return;
-    }
-
-    const filtered = sampleProjects.filter(
-      (project) =>
-        project.name.toLowerCase().includes(term.toLowerCase()) ||
-        project.description.toLowerCase().includes(term.toLowerCase()) ||
-        project.tags.some((tag) =>
-          tag.toLowerCase().includes(term.toLowerCase())
-        )
-    );
-
-    setFilteredProjects(filtered);
+    setSearchTerm(e.target.value);
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
     switch (status) {
       case "Just Started":
         return "bg-blue-100 text-blue-800";
@@ -246,21 +292,39 @@ const Pipeline = () => {
 
   // Function to refresh pipelines list
   const refreshPipelines = async () => {
-    setIsLoading(true); // Optional: show loading indicator during refresh
+    setIsPipelinesLoading(true);
     try {
       const fetchedPipelines = await getPipelines();
       setPipelines(fetchedPipelines);
-      // Optionally re-select the first pipeline or maintain selection if needed
       if (fetchedPipelines.length > 0 && !selectedPipelineId) {
         setSelectedPipelineId(fetchedPipelines[0].pipeline_id);
       }
     } catch (err) {
       console.error("Failed to refresh pipelines:", err);
-      setError(
+      setPipelinesError(
         err instanceof Error ? err.message : "Failed to refresh pipelines"
       );
     } finally {
-      setIsLoading(false);
+      setIsPipelinesLoading(false);
+    }
+  };
+
+  // Function to refresh projects list for the *current* pipeline
+  const refreshProjects = async () => {
+    if (!selectedPipelineId) return;
+
+    setIsProjectsLoading(true);
+    setProjectsError(null);
+    try {
+      const fetchedProjects = await getProjectsForPipeline(selectedPipelineId);
+      setPipelineProjects(fetchedProjects);
+    } catch (err) {
+      console.error("Failed to refresh projects:", err);
+      setProjectsError(
+        err instanceof Error ? err.message : "Failed to refresh projects"
+      );
+    } finally {
+      setIsProjectsLoading(false);
     }
   };
 
@@ -272,40 +336,33 @@ const Pipeline = () => {
   }) => {
     console.log("Submitting new pipeline:", data);
     await createPipeline(data);
-    await refreshPipelines(); // Refresh list after creation
+    await refreshPipelines();
   };
 
   // Handle NEW PROJECT submission
   const handleProjectSubmit = async (data: ProjectCreateData) => {
-    // The pipelineId is already included in the data from the modal
     console.log("Submitting new project:", data);
-    // Error thrown by createProject will be caught by the modal's handleSubmit
     await createProject(data);
-    // TODO: Refresh the project list for the current pipeline after successful creation
-    console.log(
-      "Project created successfully. Need to implement project list refresh."
-    );
-    // Example: await refreshProjectsForPipeline(selectedPipelineId);
+    await refreshProjects();
   };
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Loading State */}
-      {isLoading && (
+      {isPipelinesLoading && (
         <div className="flex justify-center items-center p-10">
-          {/* Consider adding a spinner component here */}
-          <p className="text-muted-foreground">Loading pipelines...</p>
+          <Skeleton className="h-8 w-64 mb-4" />
         </div>
       )}
 
       {/* Error State */}
-      {error && !isLoading && (
+      {pipelinesError && !isPipelinesLoading && (
         <Card className="border-destructive bg-destructive/10">
           <CardHeader>
             <CardTitle className="text-destructive">Error</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-destructive">{error}</p>
+            <p className="text-destructive">{pipelinesError}</p>
             <p className="text-sm text-muted-foreground mt-2">
               Please try refreshing the page or contact support if the problem
               persists.
@@ -315,7 +372,7 @@ const Pipeline = () => {
       )}
 
       {/* Content - Only render if not loading and no error */}
-      {!isLoading && !error && (
+      {!isPipelinesLoading && !pipelinesError && (
         <>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex-1">
@@ -459,6 +516,38 @@ const Pipeline = () => {
                 </div>
               </div>
 
+              {/* Project Loading State */}
+              {isProjectsLoading && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[1, 2, 3].map((n) => (
+                    <Card key={n} className="flex flex-col overflow-hidden">
+                      <CardHeader>
+                        <Skeleton className="h-5 w-3/4" />
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                        <Skeleton className="h-8 w-1/2" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {/* Project Error State */}
+              {projectsError && !isProjectsLoading && (
+                <Card className="border-destructive bg-destructive/10">
+                  <CardHeader>
+                    <CardTitle className="text-destructive">
+                      Error Loading Projects
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-destructive">{projectsError}</p>
+                  </CardContent>
+                </Card>
+              )}
+
               <Tabs defaultValue="grid" className="w-full">
                 <div className="flex justify-between items-center mb-4">
                   <TabsList>
@@ -466,286 +555,168 @@ const Pipeline = () => {
                     <TabsTrigger value="list">List View</TabsTrigger>
                   </TabsList>
                   <div className="text-sm text-muted-foreground">
-                    {/* Update count based on actual projects for the pipeline */}
                     Showing {filteredProjects.length} projects
                   </div>
                 </div>
 
                 <TabsContent value="grid" className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredProjects.map((project) => (
-                      <Card
-                        key={project.id}
-                        className="flex flex-col overflow-hidden hover:shadow-md transition-shadow"
-                      >
-                        <CardHeader className="pb-2 flex justify-between items-start">
-                          <div>
-                            <div className="flex items-start justify-between">
+                  {filteredProjects.length === 0 ? (
+                    <Card className="col-span-full">
+                      <CardContent className="pt-6 text-center text-muted-foreground">
+                        No projects found for this pipeline{" "}
+                        {searchTerm ? "matching your search." : "."}
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredProjects.map((project) => (
+                        <Card
+                          key={project.project_id}
+                          className="flex flex-col overflow-hidden hover:shadow-md transition-shadow"
+                        >
+                          <CardHeader className="pb-2 flex justify-between items-start">
+                            <div>
                               <CardTitle className="text-lg line-clamp-1">
                                 {project.name}
                               </CardTitle>
-                              {project.starred && (
-                                <Star className="h-4 w-4 text-yellow-500 ml-2 flex-shrink-0" />
-                              )}
                             </div>
                             <CardDescription className="flex items-center gap-1.5">
-                              {project.type === "BESS" ? (
+                              {project.type_of_plant?.includes("BESS") && (
                                 <Battery className="h-3.5 w-3.5" />
-                              ) : (
+                              )}
+                              {project.type_of_plant?.includes("PV") && (
                                 <Zap className="h-3.5 w-3.5" />
                               )}
-                              <span>{project.type}</span>
+                              <span>
+                                {project.type_of_plant?.join(" + ") || "N/A"}
+                              </span>
                             </CardDescription>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem>
-                                <Link
-                                  to="/project-overview"
-                                  className="flex items-center gap-2 w-full"
-                                >
-                                  View Project
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>Edit Details</DropdownMenuItem>
-                              <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive">
-                                Archive Project
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex flex-col">
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                            {project.description}
-                          </p>
+                          </CardHeader>
+                          <CardContent className="flex-1 flex flex-col">
+                            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                              {project.description ||
+                                "No description provided."}
+                            </p>
 
-                          <div className="space-y-3 mb-3">
-                            <div className="flex flex-wrap gap-1.5">
-                              {project.tags.map((tag, i) => (
-                                <Badge
-                                  key={i}
-                                  variant="outline"
-                                  className="text-xs"
-                                >
-                                  {tag}
-                                </Badge>
-                              ))}
-                            </div>
+                            <div className="mt-auto pt-3 border-t flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">
+                                {project.country || "N/A"}
+                              </span>
 
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">
-                                  Progress
-                                </span>
-                                <span className="font-medium">
-                                  {project.progress}%
-                                </span>
-                              </div>
-                              <Progress
-                                value={project.progress}
-                                className="h-1.5"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="mt-auto pt-3 border-t flex items-center justify-between">
-                            <div className="flex -space-x-2">
-                              {project.team.slice(0, 3).map((member, i) => (
-                                <Avatar
-                                  key={i}
-                                  className="h-6 w-6 border-2 border-background"
-                                >
-                                  <AvatarFallback className="text-[10px]">
-                                    {member.initials}
-                                  </AvatarFallback>
-                                </Avatar>
-                              ))}
-                              {project.team.length > 3 && (
-                                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] border-2 border-background">
-                                  +{project.team.length - 3}
+                              <div className="flex items-center gap-2">
+                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {new Date(
+                                    project.created_at
+                                  ).toLocaleDateString()}
                                 </div>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {project.lastUpdated}
                               </div>
-
-                              <Badge
-                                className={`text-xs ${getStatusColor(
-                                  project.status
-                                )}`}
-                              >
-                                {project.status}
-                              </Badge>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="list" className="space-y-6">
-                  <Card>
-                    <CardContent className="p-0">
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="text-left py-3 px-4 font-medium text-sm">
-                                Project Name
-                              </th>
-                              <th className="text-left py-3 px-4 font-medium text-sm">
-                                Type
-                              </th>
-                              <th className="text-left py-3 px-4 font-medium text-sm hidden lg:table-cell">
-                                Owner
-                              </th>
-                              <th className="text-left py-3 px-4 font-medium text-sm hidden md:table-cell">
-                                Progress
-                              </th>
-                              <th className="text-left py-3 px-4 font-medium text-sm">
-                                Status
-                              </th>
-                              <th className="text-left py-3 px-4 font-medium text-sm hidden lg:table-cell">
-                                Last Updated
-                              </th>
-                              <th className="text-left py-3 px-4 font-medium text-sm">
-                                Actions
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y">
-                            {filteredProjects.map((project) => (
-                              <tr
-                                key={project.id}
-                                className="hover:bg-muted/50"
-                              >
-                                <td className="py-3 px-4">
-                                  <div className="flex items-center gap-2">
-                                    {project.starred && (
-                                      <Star className="h-3.5 w-3.5 text-yellow-500" />
-                                    )}
-                                    <div>
-                                      <div className="font-medium">
-                                        {project.name}
-                                      </div>
-                                      <div className="text-xs text-muted-foreground hidden sm:block">
-                                        {project.description.substring(0, 50)}
-                                        ...
-                                      </div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4">
-                                  <Badge
-                                    variant="outline"
-                                    className="flex items-center gap-1.5"
-                                  >
-                                    {project.type === "BESS" ? (
-                                      <Battery className="h-3.5 w-3.5" />
-                                    ) : (
-                                      <Zap className="h-3.5 w-3.5" />
-                                    )}
-                                    <span>{project.type}</span>
-                                  </Badge>
-                                </td>
-                                <td className="py-3 px-4 hidden lg:table-cell">
-                                  <div className="flex items-center gap-2">
-                                    <Avatar className="h-6 w-6">
-                                      <AvatarFallback className="text-[10px]">
-                                        {project.owner.initials}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-sm">
-                                      {project.owner.name}
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4 hidden md:table-cell">
-                                  <div className="flex items-center gap-2">
-                                    <Progress
-                                      value={project.progress}
-                                      className="h-2 w-24"
-                                    />
-                                    <span className="text-xs font-medium">
-                                      {project.progress}%
-                                    </span>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4">
-                                  <Badge
-                                    className={getStatusColor(project.status)}
-                                  >
-                                    {project.status}
-                                  </Badge>
-                                </td>
-                                <td className="py-3 px-4 text-sm hidden lg:table-cell">
-                                  {project.lastUpdated}
-                                </td>
-                                <td className="py-3 px-4">
-                                  <div className="flex items-center justify-end gap-2">
-                                    <Button variant="ghost" size="icon" asChild>
-                                      <Link to="/project-overview">
-                                        <FileText className="h-4 w-4" />
-                                      </Link>
-                                    </Button>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon">
-                                          <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>
-                                          Actions
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem>
-                                          <Link
-                                            to="/project-overview"
-                                            className="flex items-center gap-2 w-full"
-                                          >
-                                            View Project
-                                          </Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem>
-                                          Edit Details
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem>
-                                          Duplicate
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-destructive">
-                                          Archive Project
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-                                </td>
+                  {filteredProjects.length === 0 ? (
+                    <Card>
+                      <CardContent className="pt-6 text-center text-muted-foreground">
+                        No projects found for this pipeline{" "}
+                        {searchTerm ? "matching your search." : "."}
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Card>
+                      <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="th-cell">Project Name</th>
+                                <th className="th-cell">Type</th>
+                                <th className="th-cell hidden lg:table-cell">
+                                  Country
+                                </th>
+                                <th className="th-cell hidden md:table-cell">
+                                  Power (MW)
+                                </th>
+                                <th className="th-cell hidden md:table-cell">
+                                  Energy (MWh)
+                                </th>
+                                <th className="th-cell hidden lg:table-cell">
+                                  Created
+                                </th>
+                                <th className="th-cell">Actions</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </CardContent>
-                  </Card>
+                            </thead>
+                            <tbody className="divide-y">
+                              {filteredProjects.map((project) => (
+                                <tr
+                                  key={project.project_id}
+                                  className="hover:bg-muted/50"
+                                >
+                                  <td className="td-cell">
+                                    <div className="font-medium">
+                                      {project.name}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground hidden sm:block">
+                                      {project.description?.substring(0, 50) ||
+                                        ""}
+                                      ...
+                                    </div>
+                                  </td>
+                                  <td className="td-cell">
+                                    <Badge
+                                      variant="outline"
+                                      className="flex items-center gap-1.5"
+                                    >
+                                      {project.type_of_plant?.includes(
+                                        "BESS"
+                                      ) && <Battery className="h-3.5 w-3.5" />}
+                                      {project.type_of_plant?.includes(
+                                        "PV"
+                                      ) && <Zap className="h-3.5 w-3.5" />}
+                                      <span>
+                                        {project.type_of_plant?.join(" + ") ||
+                                          "N/A"}
+                                      </span>
+                                    </Badge>
+                                  </td>
+                                  <td className="td-cell hidden lg:table-cell">
+                                    {project.country || "-"}
+                                  </td>
+                                  <td className="td-cell hidden md:table-cell">
+                                    {project.nominal_power_capacity ?? "-"}
+                                  </td>
+                                  <td className="td-cell hidden md:table-cell">
+                                    {project.nominal_energy_capacity ?? "-"}
+                                  </td>
+                                  <td className="td-cell hidden lg:table-cell text-sm">
+                                    {new Date(
+                                      project.created_at
+                                    ).toLocaleDateString()}
+                                  </td>
+                                  <td className="td-cell">
+                                    <div className="flex items-center justify-end gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                      >
+                                        <FileText className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
               </Tabs>
             </>
@@ -777,5 +748,9 @@ const Pipeline = () => {
     </div>
   );
 };
+
+// Helper CSS classes for table cells (optional, can inline)
+const thCell = "text-left py-3 px-4 font-medium text-sm";
+const tdCell = "py-3 px-4";
 
 export default Pipeline;

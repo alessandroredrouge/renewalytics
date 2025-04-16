@@ -62,6 +62,30 @@ async def insert_pipeline(client: Client, pipeline_data: dict) -> dict:
         # Re-raise the exception to be handled by the API endpoint
         raise
 
+async def fetch_projects_for_pipeline(client: Client, pipeline_id: str) -> list[dict]:
+    """Fetches all projects for a specific pipeline_id from the Supabase 'projects' table."""
+    if not pipeline_id:
+        print("No pipeline_id provided, cannot fetch projects.")
+        return []
+    
+    try:
+        response: APIResponse = client.table('projects')\
+                                     .select('*')\
+                                     .eq('pipeline_id', pipeline_id)\
+                                     .execute()
+
+        if not response.data:
+            if hasattr(response, 'error') and response.error:
+                 print(f"Error fetching projects for pipeline {pipeline_id}: {response.error}")
+                 return []
+            return [] # No projects found for this pipeline
+
+        print(f"Successfully fetched {len(response.data)} projects for pipeline {pipeline_id}.")
+        return response.data
+    except Exception as e:
+        print(f"An unexpected error occurred fetching projects for pipeline {pipeline_id}: {e}")
+        return []
+
 async def insert_project(client: Client, project_data: dict) -> dict:
     """Inserts a new project into the Supabase 'projects' table."""
     try:

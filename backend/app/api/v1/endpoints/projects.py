@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from supabase import Client
 import logging
 from typing import List
 
 # Import Supabase functions and client getter
-from app.services.supabase_client import get_supabase_client, insert_project 
+from app.services.supabase_client import get_supabase_client, insert_project, fetch_projects_for_pipeline
 # Import schemas
 from app.schemas.projects_schema import ProjectCreate, ProjectResponse
 
@@ -34,6 +34,19 @@ async def create_new_project(
         logger.error(f"Error creating project: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error creating project: {str(e)}")
 
-# TODO: Add GET endpoints later
-# e.g., GET /?pipeline_id={pipeline_id} to get projects for a specific pipeline
-# e.g., GET /{project_id} to get a specific project
+@router.get("/", response_model=List[ProjectResponse])
+async def get_projects(
+    pipeline_id: str = Query(..., description="The ID of the pipeline to fetch projects for"),
+    supabase_client: Client = Depends(get_supabase_client)
+):
+    """Endpoint to fetch projects filtered by pipeline_id."""
+    logger.info(f"Received request to get projects for pipeline_id: {pipeline_id}")
+    try:
+        projects = await fetch_projects_for_pipeline(supabase_client, pipeline_id)
+        # FastAPI will validate the list against ProjectResponse
+        return projects
+    except Exception as e:
+        logger.error(f"Error fetching projects for pipeline {pipeline_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error fetching projects")
+
+# TODO: Add GET /{project_id} endpoint later

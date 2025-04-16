@@ -17,15 +17,34 @@ interface CreatePipelineData {
   countries?: string[]; // Optional based on schema
 }
 
-// Interface for the data structure returned for a created project (adapt if needed)
-// This might be the same as ProjectResponse from the backend schema, or a subset
-interface ProjectData {
+// Interface for the data structure returned for a project (matches ProjectResponse)
+export interface ProjectData {
   project_id: string;
   pipeline_id: string;
   name: string;
   description?: string | null;
   country?: string | null;
-  // ... add other fields as returned by your backend ProjectResponse schema ...
+  location?: string | null;
+  type_of_plant?: string[] | null;
+  technology?: string | null;
+  hybrid?: boolean | null;
+  nominal_power_capacity?: number | null;
+  max_discharging_power?: number | null;
+  max_charging_power?: number | null;
+  nominal_energy_capacity?: number | null;
+  max_soc?: number | null;
+  min_soc?: number | null;
+  charging_efficiency?: number | null;
+  discharging_efficiency?: number | null;
+  calendar_lifetime?: number | null;
+  cycling_lifetime?: number | null;
+  capex_power?: number | null;
+  capex_energy?: number | null;
+  capex_tot?: number | null;
+  opex_power_yr?: number | null;
+  opex_energy_yr?: number | null;
+  opex_yr?: number | null;
+  revenue_streams?: string[] | null;
   created_at: string; // Assuming string from JSON
 }
 
@@ -130,6 +149,47 @@ export const createProject = async (
     return createdProject;
   } catch (error) {
     console.error("Failed to create project:", error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches projects for a specific pipeline from the backend API.
+ * @param pipelineId - The ID of the pipeline.
+ * @returns A promise that resolves to an array of ProjectData.
+ * @throws An error if the network response is not ok or pipelineId is missing.
+ */
+export const getProjectsForPipeline = async (
+  pipelineId: string | null
+): Promise<ProjectData[]> => {
+  if (!pipelineId) {
+    console.warn("getProjectsForPipeline called without pipelineId");
+    return []; // Or throw an error if preferred
+  }
+
+  try {
+    // Construct URL with query parameter
+    const url = new URL(`${API_BASE_URL}/projects/`);
+    url.searchParams.append("pipeline_id", pipelineId);
+
+    const response = await fetch(url.toString());
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData?.detail || `HTTP error! status: ${response.status}`;
+      console.error("Error fetching projects:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data: ProjectData[] = await response.json();
+    console.log(`Fetched projects for pipeline ${pipelineId}:`, data); // For debugging
+    return data;
+  } catch (error) {
+    console.error(
+      `Failed to fetch projects for pipeline ${pipelineId}:`,
+      error
+    );
     throw error;
   }
 };
