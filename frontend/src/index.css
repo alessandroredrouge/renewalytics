@@ -1,5 +1,4 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -96,7 +95,12 @@
     @apply bg-background text-foreground font-opensans;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-montserrat font-semibold;
   }
 }
@@ -117,4 +121,41 @@
   .data-header {
     @apply bg-muted font-semibold text-sm border-b border-r p-2 last:border-r-0;
   }
+
+  /* Custom CTA pulse animation (Green to Blue) */
+  @keyframes pulse-cta {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+      background-color: hsl(
+        var(--secondary)
+      ); /* Use secondary color (greenish) */
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.05);
+      background-color: hsl(var(--primary)); /* Use primary color (blueish) */
+    }
+  }
+
+  .animate-pulse-cta {
+    animation: pulse-cta 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    /* Base background color */
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground)); /* Ensure icon contrast */
+  }
+  .animate-pulse-cta:hover {
+    /* Hover state color (e.g., slightly darker primary) */
+    background-color: hsl(var(--primary) / 0.9);
+  }
+}
+
+/* Custom scrollbar styles (if needed) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
