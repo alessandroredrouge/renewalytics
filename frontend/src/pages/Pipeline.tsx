@@ -57,6 +57,7 @@ import {
   NewProjectModal,
   ProjectCreateData,
 } from "@/components/modals/newProjectModal";
+import { ProjectDetailsModal } from "@/components/modals/projectDetailsModal";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Define interface for Pipeline data
@@ -196,6 +197,10 @@ const Pipeline = () => {
         (project.technology && project.technology.toLowerCase().includes(term))
     );
   }, [pipelineProjects, searchTerm]);
+
+  // Add state for project details modal
+  const [selectedProjectForDetails, setSelectedProjectForDetails] =
+    useState<ProjectData | null>(null);
 
   // Fetch pipelines on component mount
   useEffect(() => {
@@ -344,6 +349,11 @@ const Pipeline = () => {
     console.log("Submitting new project:", data);
     await createProject(data);
     await refreshProjects();
+  };
+
+  // Handle click on a project card/row to show details
+  const handleProjectClick = (project: ProjectData) => {
+    setSelectedProjectForDetails(project);
   };
 
   return (
@@ -572,7 +582,8 @@ const Pipeline = () => {
                       {filteredProjects.map((project) => (
                         <Card
                           key={project.project_id}
-                          className="flex flex-col overflow-hidden hover:shadow-md transition-shadow"
+                          className="flex flex-col overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                          onClick={() => handleProjectClick(project)}
                         >
                           <CardHeader className="pb-2 flex justify-between items-start">
                             <div>
@@ -655,7 +666,8 @@ const Pipeline = () => {
                               {filteredProjects.map((project) => (
                                 <tr
                                   key={project.project_id}
-                                  className="hover:bg-muted/50"
+                                  className="hover:bg-muted/50 cursor-pointer"
+                                  onClick={() => handleProjectClick(project)}
                                 >
                                   <td className="td-cell">
                                     <div className="font-medium">
@@ -744,6 +756,12 @@ const Pipeline = () => {
         onClose={() => setIsNewProjectModalOpen(false)}
         onSubmit={handleProjectSubmit}
         pipelineId={selectedPipelineId}
+      />
+      {/* Render Project Details Modal */}
+      <ProjectDetailsModal
+        isOpen={Boolean(selectedProjectForDetails)}
+        onClose={() => setSelectedProjectForDetails(null)}
+        project={selectedProjectForDetails}
       />
     </div>
   );
