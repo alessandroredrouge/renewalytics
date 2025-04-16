@@ -194,4 +194,36 @@ export const getProjectsForPipeline = async (
   }
 };
 
+// Interface for the dashboard summary data returned by the API
+export interface DashboardSummaryData {
+  project_count: number;
+  pipeline_count: number;
+}
+
+/**
+ * Fetches summary data for the dashboard from the backend API.
+ * @returns A promise that resolves to DashboardSummaryData.
+ * @throws An error if the network response is not ok.
+ */
+export const getDashboardSummary = async (): Promise<DashboardSummaryData> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/dashboard/summary`);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData?.detail || `HTTP error! status: ${response.status}`;
+      console.error("Error fetching dashboard summary:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data: DashboardSummaryData = await response.json();
+    console.log("Fetched dashboard summary:", data); // For debugging
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch dashboard summary:", error);
+    throw error;
+  }
+};
+
 // You can add other API functions here (e.g., getProjectsForPipeline, etc.)

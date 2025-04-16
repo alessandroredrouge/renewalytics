@@ -2,6 +2,7 @@ import os
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from postgrest import APIResponse
+import logging
 
 # Load environment variables from .env file
 load_dotenv()
@@ -11,6 +12,8 @@ key: str | None = os.environ.get("SUPABASE_ANON_KEY")
 
 if not url or not key:
     raise EnvironmentError("SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env file")
+
+logger = logging.getLogger(__name__)
 
 def get_supabase_client() -> Client:
     """Creates and returns a Supabase client instance."""
@@ -102,4 +105,48 @@ async def insert_project(client: Client, project_data: dict) -> dict:
         return response.data[0]
     except Exception as e:
         print(f"An unexpected error occurred during project insert: {e}")
+        raise
+
+async def count_projects(client: Client) -> int:
+    """Counts the total number of projects in the Supabase 'projects' table."""
+    try:
+        response = client.table('projects').select('*', count='exact', head=True).execute()
+        # Log the raw response object for inspection
+        logger.info(f"Raw count_projects response object: {response}")
+        try:
+            logger.info(f"Raw count_projects response dict: {response.__dict__}")
+        except AttributeError:
+             logger.info("Raw count_projects response has no __dict__")
+
+        if hasattr(response, 'error') and response.error:
+            logger.error(f"Error counting projects: {response.error}")
+            raise Exception(f"Database error while counting projects: {response.error.message}")
+        
+        count = response.count if response.count is not None else 0
+        logger.info(f"Successfully counted {count} projects.")
+        return count
+    except Exception as e:
+        logger.error(f"An unexpected error occurred during project count: {e}", exc_info=True)
+        raise # Re-raise to be handled by the caller
+
+async def count_pipelines(client: Client) -> int:
+    """Counts the total number of pipelines in the Supabase 'pipelines' table."""
+    try:
+        response = client.table('pipelines').select('*', count='exact', head=True).execute()
+        # Log the raw response object for inspection
+        logger.info(f"Raw count_pipelines response object: {response}")
+        try:
+             logger.info(f"Raw count_pipelines response dict: {response.__dict__}")
+        except AttributeError:
+             logger.info("Raw count_pipelines response has no __dict__")
+
+        if hasattr(response, 'error') and response.error:
+            logger.error(f"Error counting pipelines: {response.error}")
+            raise Exception(f"Database error while counting pipelines: {response.error.message}")
+
+        count = response.count if response.count is not None else 0
+        logger.info(f"Successfully counted {count} pipelines.")
+        return count
+    except Exception as e:
+        logger.error(f"An unexpected error occurred during pipeline count: {e}", exc_info=True)
         raise
