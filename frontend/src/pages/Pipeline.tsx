@@ -449,81 +449,21 @@ const Pipeline = () => {
           {/* Project Filters, Search, and Actions (Only show if a pipeline is selected) */}
           {selectedPipeline && (
             <>
-              <div className="space-y-4">
+              {/* Removed the div containing search, filters, and sort buttons */}
+
+              {/* Keep the div containing only the New Project button */}
+              <div className="flex items-center justify-end gap-2 mt-4">
                 {" "}
-                {/* Wrap filters and actions */}
-                <div className="flex flex-col md:flex-row items-center gap-4">
-                  <div className="relative w-full md:flex-1">
-                    {" "}
-                    {/* Allow search to grow */}
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search projects by name, description, or tag..."
-                      className="pl-9"
-                      value={searchTerm}
-                      onChange={handleSearch}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 w-full md:w-auto">
-                    {" "}
-                    {/* Keep dropdowns together */}
-                    <Select defaultValue="all">
-                      <SelectTrigger className="w-full md:w-[180px]">
-                        <SelectValue placeholder="Project Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        <SelectItem value="bess">Battery Storage</SelectItem>
-                        <SelectItem value="solar">Solar PV</SelectItem>
-                        <SelectItem value="hybrid">Hybrid</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select defaultValue="all">
-                      <SelectTrigger className="w-full md:w-[180px]">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="just-started">
-                          Just Started
-                        </SelectItem>
-                        <SelectItem value="in-progress">In Progress</SelectItem>
-                        <SelectItem value="near-completion">
-                          Near Completion
-                        </SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {/* Moved Action Buttons */}
-                <div className="flex items-center justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <Filter size={16} />
-                    <span>Filter</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <SortAsc size={16} />
-                    <span>Sort</span>
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="flex items-center gap-2"
-                    onClick={() => setIsNewProjectModalOpen(true)}
-                    disabled={!selectedPipelineId}
-                  >
-                    <FolderPlus size={16} />
-                    <span>New Project</span>
-                  </Button>
-                </div>
+                {/* Added margin-top */}
+                <Button
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => setIsNewProjectModalOpen(true)}
+                  disabled={!selectedPipelineId}
+                >
+                  <FolderPlus size={16} />
+                  <span>New Project</span>
+                </Button>
               </div>
 
               {/* Project Loading State */}
