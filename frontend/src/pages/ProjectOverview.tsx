@@ -172,6 +172,9 @@ const ProjectOverview = () => {
               projectData.location || projectData.country || "N/A"
             }`}
           </p>
+          <p className="text-sm text-muted-foreground max-w-3xl mt-2">
+            {projectData.description || "No detailed description provided."}
+          </p>
         </div>
         <div className="flex items-center gap-2 mt-4 md:mt-0">
           <Button
@@ -196,7 +199,7 @@ const ProjectOverview = () => {
         </TabsList>
 
         <TabsContent value="details" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -205,7 +208,7 @@ const ProjectOverview = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <dl className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                   <DetailItem
                     label="Power Rating"
                     value={projectData.nominal_power_capacity}
@@ -285,7 +288,7 @@ const ProjectOverview = () => {
                       precision={0}
                     />
                   )}
-                </dl>
+                </div>
               </CardContent>
             </Card>
 
@@ -297,7 +300,7 @@ const ProjectOverview = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <dl className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                   <DetailItem
                     label="Total CAPEX"
                     value={projectData.capex_tot}
@@ -338,7 +341,7 @@ const ProjectOverview = () => {
                       precision={0}
                     />
                   )}
-                </dl>
+                </div>
               </CardContent>
             </Card>
 
@@ -350,61 +353,31 @@ const ProjectOverview = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <dl className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mb-4">
                   <DetailItem label="Country" value={projectData.country} />
                   <DetailItem label="Location" value={projectData.location} />
-
-                  <div className="pt-2">
-                    <Label className="text-xs text-muted-foreground">
-                      Revenue Streams
-                    </Label>
-                    {projectData.revenue_streams &&
-                    projectData.revenue_streams.length > 0 ? (
-                      <ul className="mt-1 space-y-1">
-                        {projectData.revenue_streams.map((stream) => (
-                          <li
-                            key={stream}
-                            className="flex items-center text-sm"
-                          >
-                            <Check
-                              size={14}
-                              className="mr-2 text-energy-green flex-shrink-0"
-                            />
-                            <span>{stream}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-sm">-</p>
-                    )}
-                  </div>
-                </dl>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Project Description</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {projectData.description ||
-                    "No detailed description provided."}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Key Assumptions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground italic">
-                  (Assumption details are not currently stored per project -
-                  this section can be developed later)
-                </p>
+                </div>
+                <div className="pt-2">
+                  <Label className="text-xs text-muted-foreground">
+                    Revenue Streams
+                  </Label>
+                  {projectData.revenue_streams &&
+                  projectData.revenue_streams.length > 0 ? (
+                    <ul className="mt-1 space-y-1">
+                      {projectData.revenue_streams.map((stream) => (
+                        <li key={stream} className="flex items-center text-sm">
+                          <Check
+                            size={14}
+                            className="mr-2 text-energy-green flex-shrink-0"
+                          />
+                          <span>{stream}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm">-</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
