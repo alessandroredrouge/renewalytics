@@ -136,7 +136,7 @@ class BatteryOptimizer:
             }
             
             # Add datetime if provided
-            if datetimes and i < len(datetimes):
+            if datetimes is not None and i < len(datetimes):
                 result['datetime'] = datetimes[i]
                 
             results.append(result)
