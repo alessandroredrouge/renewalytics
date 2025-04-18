@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useView } from "@/contexts/ViewContext";
-import { getProjectDetails, ProjectData } from "@/lib/apiClient";
+import { ProjectData } from "@/lib/apiClient";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { useProjectData } from "@/contexts/ProjectDataContext";
 
 const formatValue = (
   value: any,
@@ -62,41 +63,27 @@ const DetailItem: React.FC<{
 
 const ProjectOverview = () => {
   const { activeProjectId } = useView();
-  const [projectData, setProjectData] = useState<ProjectData | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { projectData: projectDataFromContext } = useProjectData();
 
-  useEffect(() => {
-    const loadProjectData = async () => {
-      if (!activeProjectId) {
-        setError("No active project selected.");
-        setIsLoading(false);
-        setProjectData(null);
-        return;
-      }
+  if (!activeProjectId) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <Alert variant="default" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No Project Selected</AlertTitle>
+          <AlertDescription>
+            Please open an existing project or start a new sandbox project.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
-      setIsLoading(true);
-      setError(null);
-      setProjectData(null);
-
-      try {
-        console.log(`Fetching data for project ID: ${activeProjectId}`);
-        const data = await getProjectDetails(activeProjectId);
-        setProjectData(data);
-      } catch (err) {
-        console.error("Error loading project details:", err);
-        setError(
-          err instanceof Error ? err.message : "Failed to load project details"
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadProjectData();
-  }, [activeProjectId]);
-
-  if (isLoading) {
+  if (
+    activeProjectId !== "sandbox" &&
+    (!projectDataFromContext ||
+      projectDataFromContext.project_id !== activeProjectId)
+  ) {
     return (
       <div className="space-y-6 animate-fade-in">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
@@ -114,35 +101,39 @@ const ProjectOverview = () => {
     );
   }
 
-  if (error) {
+  const projectData = projectDataFromContext;
+
+  const defaultSandboxData: Partial<ProjectData> = {
+    name: "New Sandbox Project",
+    description: "Unsaved project. Fill in details and save.",
+    country: null,
+    location: null,
+    type_of_plant: [],
+    technology: null,
+    nominal_power_capacity: null,
+  };
+
+  const displayData =
+    activeProjectId === "sandbox" && !projectData
+      ? (defaultSandboxData as ProjectData)
+      : projectData;
+
+  if (!displayData) {
     return (
       <div className="space-y-6 animate-fade-in">
         <Alert variant="destructive" className="mt-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (!projectData) {
-    return (
-      <div className="space-y-6 animate-fade-in">
-        <Alert variant="default" className="mt-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>No Project Data</AlertTitle>
+          <AlertTitle>Error Displaying Project</AlertTitle>
           <AlertDescription>
-            {activeProjectId
-              ? "Could not load data for the selected project."
-              : "Please select a project to view its overview."}
+            Could not display project data. There might have been an error
+            during loading.
           </AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  const isBessProject = projectData.type_of_plant?.includes("BESS");
+  const isBessProject = displayData.type_of_plant?.includes("BESS");
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -150,46 +141,34 @@ const ProjectOverview = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold text-energy-blue">
-              {projectData.name}
+              {displayData.name} {activeProjectId === "sandbox" ? "*" : ""}
             </h1>
-            {projectData.type_of_plant &&
-              projectData.type_of_plant.length > 0 && (
+            {displayData.type_of_plant &&
+              displayData.type_of_plant.length > 0 && (
                 <Badge variant="outline" className="ml-2">
-                  {projectData.type_of_plant.join(" + ")}
+                  {displayData.type_of_plant.join(" + ")}
                 </Badge>
               )}
           </div>
           <p className="text-muted-foreground mt-1">
-            {`${formatValue(projectData.nominal_power_capacity, "MW", 0)}`}
+            {`${formatValue(displayData.nominal_power_capacity, "MW", 0)}`}
             {isBessProject
               ? ` / ${formatValue(
-                  projectData.nominal_energy_capacity,
+                  displayData.nominal_energy_capacity,
                   "MWh",
                   0
                 )}`
               : ""}
-            {` ${projectData.technology || "Project"} in ${
-              projectData.location || projectData.country || "N/A"
+            {` ${displayData.technology || "Project"} in ${
+              displayData.location || displayData.country || "N/A"
             }`}
           </p>
           <p className="text-sm text-muted-foreground max-w-3xl mt-2">
-            {projectData.description || "No detailed description provided."}
+            {displayData.description ||
+              (activeProjectId === "sandbox"
+                ? ""
+                : "No detailed description provided.")}
           </p>
-        </div>
-        <div className="flex items-center gap-2 mt-4 md:mt-0">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-            disabled
-          >
-            <Edit3 size={16} />
-            <span>Edit Details</span>
-          </Button>
-          <Button size="sm" className="flex items-center gap-2" disabled>
-            <BarChart3 size={16} />
-            <span>Run Simulation</span>
-          </Button>
         </div>
       </div>
 
@@ -211,7 +190,7 @@ const ProjectOverview = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                   <DetailItem
                     label="Power Rating"
-                    value={projectData.nominal_power_capacity}
+                    value={displayData.nominal_power_capacity}
                     unit="MW"
                     precision={0}
                   />
@@ -219,75 +198,73 @@ const ProjectOverview = () => {
                     <>
                       <DetailItem
                         label="Energy Capacity"
-                        value={projectData.nominal_energy_capacity}
+                        value={displayData.nominal_energy_capacity}
                         unit="MWh"
                         precision={0}
                       />
                       <DetailItem
                         label="Duration"
                         value={
-                          (projectData.nominal_energy_capacity ?? 0) /
-                          (projectData.nominal_power_capacity ?? 1)
+                          (displayData.nominal_energy_capacity ?? 0) /
+                          (displayData.nominal_power_capacity ?? 1)
                         }
                         unit="hours"
                         precision={1}
                       />
                       <DetailItem
                         label="Max Charging Power"
-                        value={projectData.max_charging_power}
+                        value={displayData.max_charging_power}
                         unit="MW"
                         precision={0}
                       />
                       <DetailItem
                         label="Charging Efficiency"
-                        value={projectData.charging_efficiency}
+                        value={displayData.charging_efficiency}
                         unit="%"
                         precision={1}
                       />
                       <DetailItem
                         label="Max SoC"
-                        value={projectData.max_soc}
+                        value={displayData.max_soc}
                         unit="%"
                         precision={1}
                       />
                       <DetailItem
                         label="Min SoC"
-                        value={projectData.min_soc}
+                        value={displayData.min_soc}
                         unit="%"
                         precision={1}
+                      />
+                      <DetailItem
+                        label="Cycling Lifetime"
+                        value={displayData.cycling_lifetime}
+                        unit="Cycles"
+                        precision={0}
                       />
                     </>
                   )}
                   <DetailItem
                     label="Max Discharging Power"
-                    value={projectData.max_discharging_power}
+                    value={displayData.max_discharging_power}
                     unit="MW"
                     precision={0}
                   />
                   <DetailItem
                     label="Discharging Efficiency"
-                    value={projectData.discharging_efficiency}
+                    value={displayData.discharging_efficiency}
                     unit="%"
                     precision={1}
                   />
                   <DetailItem
                     label="Technology"
-                    value={projectData.technology}
+                    value={displayData.technology}
                   />
                   <DetailItem
                     label="Calendar Lifetime"
-                    value={projectData.calendar_lifetime}
+                    value={displayData.calendar_lifetime}
                     unit="Years"
                     precision={0}
                   />
-                  {isBessProject && (
-                    <DetailItem
-                      label="Cycling Lifetime"
-                      value={projectData.cycling_lifetime}
-                      unit="Cycles"
-                      precision={0}
-                    />
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -303,40 +280,40 @@ const ProjectOverview = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                   <DetailItem
                     label="Total CAPEX"
-                    value={projectData.capex_tot}
+                    value={displayData.capex_tot}
                     unit="$"
                     precision={0}
                   />
                   <DetailItem
                     label="CAPEX (Power)"
-                    value={projectData.capex_power}
+                    value={displayData.capex_power}
                     unit="$/kW"
                     precision={0}
                   />
                   {isBessProject && (
                     <DetailItem
                       label="CAPEX (Energy)"
-                      value={projectData.capex_energy}
+                      value={displayData.capex_energy}
                       unit="$/kWh"
                       precision={0}
                     />
                   )}
                   <DetailItem
                     label="Total OPEX (Yearly)"
-                    value={projectData.opex_yr}
+                    value={displayData.opex_yr}
                     unit="$/yr"
                     precision={0}
                   />
                   <DetailItem
                     label="OPEX (Power / Year)"
-                    value={projectData.opex_power_yr}
+                    value={displayData.opex_power_yr}
                     unit="$/kW/yr"
                     precision={0}
                   />
                   {isBessProject && (
                     <DetailItem
                       label="OPEX (Energy / Year)"
-                      value={projectData.opex_energy_yr}
+                      value={displayData.opex_energy_yr}
                       unit="$/kWh/yr"
                       precision={0}
                     />
@@ -354,17 +331,17 @@ const ProjectOverview = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mb-4">
-                  <DetailItem label="Country" value={projectData.country} />
-                  <DetailItem label="Location" value={projectData.location} />
+                  <DetailItem label="Country" value={displayData.country} />
+                  <DetailItem label="Location" value={displayData.location} />
                 </div>
                 <div className="pt-2">
                   <Label className="text-xs text-muted-foreground">
                     Revenue Streams
                   </Label>
-                  {projectData.revenue_streams &&
-                  projectData.revenue_streams.length > 0 ? (
+                  {displayData.revenue_streams &&
+                  displayData.revenue_streams.length > 0 ? (
                     <ul className="mt-1 space-y-1">
-                      {projectData.revenue_streams.map((stream) => (
+                      {displayData.revenue_streams.map((stream) => (
                         <li key={stream} className="flex items-center text-sm">
                           <Check
                             size={14}
