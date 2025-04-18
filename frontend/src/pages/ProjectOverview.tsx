@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { useProjectData } from "@/contexts/ProjectDataContext";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 const formatValue = (
@@ -120,6 +121,17 @@ const ProjectOverview = () => {
   const { projectData: projectDataFromContext, updateProjectField } =
     useProjectData();
   const [isEditing, setIsEditing] = useState(false);
+  const [revenueStreamsInput, setRevenueStreamsInput] = useState<string>("");
+
+  useEffect(() => {
+    if (projectDataFromContext) {
+      setRevenueStreamsInput(
+        Array.isArray(projectDataFromContext.revenue_streams)
+          ? projectDataFromContext.revenue_streams.join(", ")
+          : ""
+      );
+    }
+  }, [projectDataFromContext]);
 
   if (!activeProjectId) {
     return (
@@ -189,20 +201,13 @@ const ProjectOverview = () => {
   }
 
   const handleFieldChange = (field: keyof ProjectData, value: string) => {
-    let processedValue: any = value;
+    if (field === "revenue_streams") return;
 
+    let processedValue: any = value;
     const sourceDataForType = projectDataFromContext ?? defaultSandboxData;
     const originalValue = sourceDataForType[field];
 
-    if (field === "revenue_streams") {
-      processedValue = value
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s);
-      if (processedValue.length === 0) {
-        processedValue = null;
-      }
-    } else if (
+    if (
       typeof originalValue === "number" ||
       (originalValue === null && typeof displayData[field] === "number")
     ) {
@@ -215,7 +220,6 @@ const ProjectOverview = () => {
     } else if (value === "") {
       processedValue = null;
     }
-
     if (projectDataFromContext || activeProjectId === "sandbox") {
       updateProjectField(field, processedValue);
     } else {
@@ -225,7 +229,45 @@ const ProjectOverview = () => {
     }
   };
 
+  const handleProjectTypeChange = (
+    type: "BESS" | "PV",
+    checked: boolean | string
+  ) => {
+    const currentTypes = displayData.type_of_plant ?? [];
+    let newTypes: string[];
+
+    if (checked) {
+      newTypes = currentTypes.includes(type)
+        ? currentTypes
+        : [...currentTypes, type];
+    } else {
+      newTypes = currentTypes.filter((t) => t !== type);
+    }
+
+    updateProjectField("type_of_plant", newTypes.length > 0 ? newTypes : null);
+    updateProjectField("hybrid", newTypes.length > 1);
+  };
+
+  const updateRevenueStreamsContext = () => {
+    const processedArray = revenueStreamsInput
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s);
+    const currentContextValue = projectDataFromContext?.revenue_streams ?? null;
+    const newContextValue = processedArray.length > 0 ? processedArray : null;
+
+    if (
+      JSON.stringify(currentContextValue) !== JSON.stringify(newContextValue)
+    ) {
+      updateProjectField("revenue_streams", newContextValue);
+      console.log("Updated revenue_streams in context:", newContextValue);
+    }
+  };
+
   const handleToggleEdit = () => {
+    if (isEditing) {
+      updateRevenueStreamsContext();
+    }
     setIsEditing(!isEditing);
   };
 
@@ -254,6 +296,41 @@ const ProjectOverview = () => {
                 )}
             </h1>
           )}
+
+          {isEditing && (
+            <fieldset className="border p-3 rounded mt-3">
+              <legend className="text-xs font-medium px-1 text-muted-foreground">
+                Project Type
+              </legend>
+              <div className="flex items-center space-x-4 pt-1">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="type-bess"
+                    checked={displayData.type_of_plant?.includes("BESS")}
+                    onCheckedChange={(checked) =>
+                      handleProjectTypeChange("BESS", checked)
+                    }
+                  />
+                  <Label htmlFor="type-bess" className="text-sm font-medium">
+                    BESS
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="type-pv"
+                    checked={displayData.type_of_plant?.includes("PV")}
+                    onCheckedChange={(checked) =>
+                      handleProjectTypeChange("PV", checked)
+                    }
+                  />
+                  <Label htmlFor="type-pv" className="text-sm font-medium">
+                    PV
+                  </Label>
+                </div>
+              </div>
+            </fieldset>
+          )}
+
           {!isEditing && (
             <p className="text-muted-foreground">
               {`${formatValue(displayData.nominal_power_capacity, "MW", 0)}`}
@@ -686,21 +763,19 @@ const ProjectOverview = () => {
                   )}
                 </div>
                 <div className="pt-2">
-                  <Label className="text-xs text-muted-foreground">
+                  <Label
+                    htmlFor="revenue-streams"
+                    className="text-xs text-muted-foreground"
+                  >
                     Revenue Streams
                   </Label>
                   {isEditing ? (
                     <Input
                       id="revenue-streams"
                       type="text"
-                      value={
-                        Array.isArray(displayData.revenue_streams)
-                          ? displayData.revenue_streams.join(", ")
-                          : ""
-                      }
-                      onChange={(e) =>
-                        handleFieldChange("revenue_streams", e.target.value)
-                      }
+                      value={revenueStreamsInput}
+                      onChange={(e) => setRevenueStreamsInput(e.target.value)}
+                      onBlur={updateRevenueStreamsContext}
                       placeholder="Enter streams, comma-separated"
                       className="text-sm mt-1"
                     />
