@@ -1,0 +1,90 @@
+# Implementation Plan
+
+This document outlines the next steps for implementing features in Renewalytics.
+
+## Current State (End of Phase 3)
+
+*   Frontend state management for active projects (`ProjectDataContext`) is implemented.
+*   Sandbox mode allows starting new, unsaved projects.
+*   Editing project details (`ProjectOverview.tsx`) updates the context.
+*   Saving existing projects (`PUT /projects/{id}`) is implemented.
+*   Saving new Sandbox projects (`POST /projects` via pipeline selection) is implemented.
+
+## Phase 4: Running Simulations
+
+1.  **Backend: Financial Calculation Endpoint**
+    *   [ ] Create `backend/app/api/v1/endpoints/simulations.py`.
+    *   [ ] Define a Pydantic input schema in `backend/app/schemas/simulations_schema.py` (or similar) that reflects the inputs needed by `calculate_project_financials`.
+    *   [ ] Implement `POST /calculate_financials` endpoint in `simulations.py`.
+        *   Accept request body matching the input schema.
+        *   Import and call `calculate_project_financials` from `financials.py`.
+        *   Define a Pydantic response schema for the results.
+        *   Return the results dictionary, serialized by the response schema.
+    *   [ ] Register the `simulations.py` router in `backend/app/api/v1/api.py`.
+2.  **Frontend: API Client Function**
+    *   [ ] Add `runFinancialCalculation(projectData)` function to `frontend/src/lib/apiClient.ts` to call the `POST /calculate_financials` endpoint.
+3.  **Frontend: Trigger Simulation**
+    *   [ ] Implement `handleRunSimulation` in `frontend/src/components/layout/Navbar.tsx`.
+        *   Get current `projectData` from `useProjectData`.
+        *   Add loading state (`isSimulating`).
+        *   Call `apiClient.runFinancialCalculation(projectData)`.
+        *   Handle success: Store results temporarily in `ProjectDataContext` (requires adding state fields to context), show success toast, navigate to Results page.
+        *   Handle error: Show error toast.
+        *   Clear loading state.
+4.  **Frontend: Display Results**
+    *   [ ] Modify `frontend/src/pages/Results.tsx` to read simulation results from `ProjectDataContext`.
+    *   [ ] Display key metrics and potentially charts based on the results data.
+5.  **(Future) Backend: Battery Optimization Endpoint**
+    *   [ ] Define input/output schemas for battery optimization.
+    *   [ ] Create `POST /optimize_battery` endpoint (or similar) in `simulations.py`.
+    *   [ ] Call `BatteryOptimizer.optimize` from `battery_optimization.py`.
+6.  **(Future) Frontend: Battery Optimization Trigger**
+    *   [ ] Add relevant API client function.
+    *   [ ] Potentially add a separate button or logic in `handleRunSimulation` to trigger battery optimization.
+
+## Phase 5: Handling Results (Scenario/Simulation Saving)
+
+1.  **Database: `simulations` Table**
+    *   [ ] Verify/confirm Supabase `simulations` table schema. Expected columns:
+        *   `simulation_id` (uuid, pk)
+        *   `project_id` (uuid, fk to projects)
+        *   `name` (text, user-defined scenario name)
+        *   `created_at` (timestamp)
+        *   `parameters_snapshot` (jsonb - store input parameters used for the sim)
+        *   `results_summary` (jsonb - store key metrics like NPV, IRR)
+        *   `results_storage_path` (text, nullable - path to detailed results in Supabase Storage)
+2.  **Backend: API Endpoints**
+    *   [ ] Add `insert_simulation` function to `supabase_client.py`.
+    *   [ ] Add `fetch_simulations_for_project` function to `supabase_client.py`.
+    *   [ ] Create `POST /projects/{project_id}/simulations` endpoint in `simulations.py` (or `projects.py`):
+        *   Accept scenario name, parameters snapshot, results summary.
+        *   (Optional) Handle file upload to Supabase Storage for detailed results and get the path.
+        *   Call `insert_simulation`.
+        *   Return saved simulation metadata.
+    *   [ ] Create `GET /projects/{project_id}/simulations` endpoint:
+        *   Call `fetch_simulations_for_project`.
+        *   Return list of saved simulations.
+3.  **Frontend: Save Scenario Functionality**
+    *   [ ] Add state to `ProjectDataContext` for `currentSimulationResults`.
+    *   [ ] Add a "Save Scenario" or "Save Results" button (e.g., on `Results.tsx` page or `Navbar`).
+    *   [ ] Implement click handler for the button:
+        *   Prompt user for a scenario name (e.g., using a simple modal).
+        *   Get `currentSimulationResults` and `projectData` (as parameters snapshot) from context.
+        *   Prepare `results_summary` (key metrics) from the results.
+        *   Call new API client function (`saveSimulation`) targeting `POST /projects/{project_id}/simulations`.
+        *   Handle success/error toasts.
+4.  **Frontend: Scenario Management UI**
+    *   [ ] Implement `frontend/src/pages/Scenarios.tsx`:
+        *   Fetch saved scenarios using `apiClient.getSimulations(activeProjectId)`.
+        *   Display the list of scenarios.
+        *   (Future) Allow deleting scenarios.
+        *   (Future) Allow loading a scenario (fetch details, potentially update context parameters, display results).
+
+## Future Refinements
+
+*   [ ] Implement editing functionality on other project pages (`Financials.tsx`, `DispatchLogic.tsx`, `RevenueStreams.tsx`).
+*   [ ] Complete `financials.py` calculation logic.
+*   [ ] Enhance input validation (frontend and backend Pydantic models).
+*   [ ] Refine loading states and error handling across the application.
+*   [ ] Implement user authentication/authorization if required.
+*   [ ] Add unit and integration tests. 

@@ -25,7 +25,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, PlusCircle } from "lucide-react";
-import { useProjectData } from "@/contexts/ProjectDataContext";
+import {
+  useProjectData,
+  ActiveProjectState,
+} from "@/contexts/ProjectDataContext";
 import { useView } from "@/contexts/ViewContext";
 import { useNavigate } from "react-router-dom";
 
@@ -143,7 +146,38 @@ export const SelectProjectModal: React.FC<SelectProjectModalProps> = ({
 
   const handleStartSandbox = () => {
     console.log("Starting Sandbox Project");
-    setProjectData(null);
+
+    const defaultSandboxState: ActiveProjectState = {
+      project_id: null as any,
+      pipeline_id: "",
+      name: "New Sandbox Project",
+      description: "Unsaved project. Fill in details and save.",
+      country: null,
+      location: null,
+      type_of_plant: [],
+      technology: null,
+      hybrid: null,
+      nominal_power_capacity: null,
+      max_discharging_power: null,
+      max_charging_power: null,
+      nominal_energy_capacity: null,
+      max_soc: null,
+      min_soc: null,
+      charging_efficiency: null,
+      discharging_efficiency: null,
+      calendar_lifetime: null,
+      cycling_lifetime: null,
+      capex_power: null,
+      capex_energy: null,
+      capex_tot: null,
+      opex_power_yr: null,
+      opex_energy_yr: null,
+      opex_yr: null,
+      revenue_streams: null,
+      created_at: new Date().toISOString(),
+    };
+
+    setProjectData(defaultSandboxState);
     setView("project");
     setActiveProjectId("sandbox");
     navigate("/project-overview");
