@@ -3,6 +3,8 @@ from typing import List, Optional
 from datetime import datetime
 
 # Base model with fields common to create and response
+# Now includes ALL fields that can be associated with a project,
+# making them Optional for flexibility in responses and updates.
 class ProjectBase(BaseModel):
     name: str = Field(..., min_length=1, description="The name of the project")
     description: Optional[str] = Field(None, description="A description of the project")
@@ -33,11 +35,23 @@ class ProjectBase(BaseModel):
     opex_yr: Optional[float] = Field(None, description="Total Operational Expenditure per year ($/yr)")
     revenue_streams: Optional[List[str]] = Field(None, description="List of revenue streams (e.g., ['Arbitrage'])")
 
-# Schema for creating a new project (data received from frontend)
-class ProjectCreate(ProjectBase):
+# Schema for CREATING a new project STUB (data received from frontend modal)
+# Only includes the essential fields for initial creation.
+class ProjectCreate(BaseModel):
     pipeline_id: str = Field(..., description="The ID of the pipeline this project belongs to")
+    name: str = Field(..., min_length=1, description="The name of the project")
+    description: Optional[str] = Field(None, description="A description of the project") # Keep optional fields needed for stub
+    country: Optional[str] = Field(None, description="The country where the project is located")
+    location: Optional[str] = Field(None, description="Specific location or coordinates")
+    type_of_plant: Optional[List[str]] = Field(None, description="Types of plants involved (e.g., ['BESS', 'PV'])")
 
-# Schema for responding with project data (data sent to frontend)
+# Schema for UPDATING a project (used for the main 'Save Project' action later)
+# Inherits all fields, allowing partial updates (though we'll likely send the full state)
+class ProjectUpdate(ProjectBase):
+     pass # Inherits all optional fields from ProjectBase
+
+# Schema for RESPONDING with project data (data sent to frontend)
+# Includes all possible fields, plus the IDs and timestamp
 class ProjectResponse(ProjectBase):
     project_id: str # Assuming UUID is returned as string
     pipeline_id: str

@@ -1,8 +1,8 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Plus, X, Loader2 } from "lucide-react";
+import { LayoutDashboard, Plus, X, Loader2, Save, Play } from "lucide-react";
 import { useView } from "@/contexts/ViewContext";
 import { SelectProjectModal } from "@/components/modals/selectProjectModal";
 import {
@@ -23,31 +23,59 @@ interface OpenedProject {
 
 const Navbar = () => {
   const { setView, setActiveProjectId, activeProjectId, view } = useView();
-  const { setProjectData } = useProjectData();
+  const { projectData, setProjectData, isSaved } = useProjectData();
   const navigate = useNavigate();
-  const [openedProjects, setOpenedProjects] = useState<OpenedProject[]>([]);
-  const [activeView, setActiveView] = useState<string | "general">("general");
+  const [openedSavedProjects, setOpenedSavedProjects] = useState<
+    OpenedProject[]
+  >([]);
+  const [localActiveViewId, setLocalActiveViewId] = useState<string | null>(
+    activeProjectId
+  );
   const [isSelectProjectModalOpen, setIsSelectProjectModalOpen] =
     useState(false);
   const [isLoadingProject, setIsLoadingProject] = useState<string | null>(null);
 
+  useEffect(() => {
+    setLocalActiveViewId(activeProjectId);
+  }, [activeProjectId]);
+
   const handleGeneralViewClick = () => {
-    setActiveView("general");
     setView("general");
     setActiveProjectId(null);
     setProjectData(null);
     navigate("/");
   };
 
-  const activateProjectView = (projectId: string) => {
-    setActiveView(projectId);
+  const activateProjectView = (projectId: string | null) => {
     setView("project");
     setActiveProjectId(projectId);
-    navigate("/project-overview");
+    if (projectId) {
+      navigate("/project-overview");
+    }
   };
 
   const handleSwitchToProjectTab = (projectId: string) => {
-    activateProjectView(projectId);
+    if (projectId !== projectData?.project_id) {
+      console.log(
+        `Context project ${projectData?.project_id} differs from tab ${projectId}. Reloading...`
+      );
+      const projectToLoad = openedSavedProjects.find((p) => p.id === projectId);
+      if (projectToLoad) {
+        handleProjectSelect(projectToLoad);
+      } else {
+        console.error(
+          "Attempted to switch to a tab not in openedSavedProjects"
+        );
+      }
+    } else {
+      activateProjectView(projectId);
+      console.log(`Switched tab to existing loaded project: ${projectId}`);
+    }
+  };
+
+  const handleSwitchToSandboxTab = () => {
+    activateProjectView("sandbox");
+    console.log("Switched tab to Sandbox");
   };
 
   const handleOpenProjectModal = () => {
@@ -61,9 +89,10 @@ const Navbar = () => {
   const handleProjectSelect = async (project: OpenedProject) => {
     setIsSelectProjectModalOpen(false);
     setIsLoadingProject(project.id);
+    setLocalActiveViewId(project.id);
 
-    if (!openedProjects.some((p) => p.id === project.id)) {
-      setOpenedProjects([...openedProjects, project]);
+    if (!openedSavedProjects.some((p) => p.id === project.id)) {
+      setOpenedSavedProjects([...openedSavedProjects, project]);
     }
 
     try {
@@ -78,8 +107,8 @@ const Navbar = () => {
         description:
           error instanceof Error ? error.message : "Please try again.",
       });
-      setOpenedProjects((prev) => prev.filter((p) => p.id !== project.id));
-      if (activeView === project.id) {
+      setOpenedSavedProjects((prev) => prev.filter((p) => p.id !== project.id));
+      if (localActiveViewId === project.id) {
         handleGeneralViewClick();
       }
     } finally {
@@ -88,39 +117,84 @@ const Navbar = () => {
   };
 
   const handleCloseProjectTab = (
-    projectIdToClose: string,
+    projectIdToClose: string | null,
     event: React.MouseEvent
   ) => {
     event.stopPropagation();
-    setOpenedProjects(openedProjects.filter((p) => p.id !== projectIdToClose));
 
-    if (activeView === projectIdToClose) {
+    if (projectIdToClose === "sandbox") {
       handleGeneralViewClick();
+    } else if (projectIdToClose) {
+      setOpenedSavedProjects(
+        openedSavedProjects.filter((p) => p.id !== projectIdToClose)
+      );
+      if (localActiveViewId === projectIdToClose) {
+        handleGeneralViewClick();
+      }
     }
   };
 
-  const shouldPulse = openedProjects.length === 0;
+  const handleSaveProject = () => {
+    console.log("Save button clicked. Current state:", projectData);
+    toast.info("Save functionality not yet implemented.");
+  };
+
+  const handleRunSimulation = () => {
+    console.log("Run Simulation button clicked.");
+    toast.info("Run Simulation functionality not yet implemented.");
+  };
+
+  const isSandboxActive = activeProjectId === "sandbox";
+  const showProjectButtons = view === "project" && activeProjectId !== null;
 
   return (
     <TooltipProvider delayDuration={100}>
-      <header className="border-b bg-card h-16 flex items-center px-4 justify-between">
-        <div className="flex items-center flex-grow min-w-0">
+      <header className="border-b bg-card h-16 flex items-center px-4 justify-between gap-4">
+        <div className="flex items-center flex-shrink-0">
           <SidebarTrigger />
           <Button
-            variant={activeView === "general" ? "secondary" : "ghost"}
+            variant={localActiveViewId === null ? "secondary" : "ghost"}
             className="font-medium ml-4 text-sm h-8 px-3 shrink-0"
             onClick={handleGeneralViewClick}
           >
             <LayoutDashboard size={16} className="mr-2" />
             General View
           </Button>
+        </div>
 
-          <div className="flex items-center space-x-1 ml-1 overflow-x-auto scrollbar-hide">
-            {openedProjects.map((project) => (
+        <div className="flex items-center flex-grow min-w-0 overflow-hidden">
+          <div className="flex items-center space-x-1 overflow-x-auto scrollbar-hide flex-grow">
+            {isSandboxActive && (
+              <Tooltip key="sandbox">
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={"secondary"}
+                    className="font-medium text-sm h-8 px-3 relative group whitespace-nowrap shrink-0"
+                    onClick={handleSwitchToSandboxTab}
+                  >
+                    <span>New Project*</span>
+                    <button
+                      onClick={(e) => handleCloseProjectTab("sandbox", e)}
+                      className="absolute top-1/2 right-1 transform -translate-y-1/2 p-0.5 rounded-full hover:bg-muted-foreground/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label={`Close New Project`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Unsaved Sandbox Project</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
+            {openedSavedProjects.map((project) => (
               <Tooltip key={project.id}>
                 <TooltipTrigger asChild>
                   <Button
-                    variant={activeView === project.id ? "secondary" : "ghost"}
+                    variant={
+                      localActiveViewId === project.id ? "secondary" : "ghost"
+                    }
                     className="font-medium text-sm h-8 px-3 relative group whitespace-nowrap shrink-0"
                     onClick={() => handleSwitchToProjectTab(project.id)}
                     disabled={isLoadingProject === project.id}
@@ -149,11 +223,13 @@ const Navbar = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={shouldPulse ? "default" : "ghost"}
+                variant="ghost"
                 size="icon"
                 className={cn(
                   "ml-2 h-8 w-8 shrink-0",
-                  shouldPulse && "animate-pulse-cta"
+                  openedSavedProjects.length === 0 &&
+                    !isSandboxActive &&
+                    "animate-pulse-cta"
                 )}
                 onClick={handleOpenProjectModal}
               >
@@ -161,9 +237,46 @@ const Navbar = () => {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Open a project</p>
+              <p>Open or Start Project</p>
             </TooltipContent>
           </Tooltip>
+        </div>
+
+        <div className="flex items-center flex-shrink-0">
+          {showProjectButtons && (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={!isSaved ? "default" : "outline"}
+                    size="icon"
+                    className="h-8 w-8 mr-2"
+                    onClick={handleSaveProject}
+                  >
+                    <Save size={16} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isSaved ? "Project Saved" : "Save Project Changes"}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleRunSimulation}
+                  >
+                    <Play size={16} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Run Simulation</p>
+                </TooltipContent>
+              </Tooltip>
+            </>
+          )}
         </div>
 
         <SelectProjectModal
