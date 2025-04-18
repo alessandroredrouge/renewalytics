@@ -134,6 +134,53 @@ async def fetch_project_by_id(client: Client, project_id: str) -> dict | None:
         # Depending on how you want to handle errors upstream, you might raise here
         raise # Re-raise the exception to be handled by the endpoint
 
+async def update_project_in_db(client: Client, project_id: str, project_data: dict) -> dict | None:
+    """Updates an existing project in the Supabase 'projects' table.
+
+    Args:
+        client: The Supabase client instance.
+        project_id: The UUID of the project to update.
+        project_data: A dictionary containing the fields to update.
+
+    Returns:
+        The updated project data as a dictionary, or None if not found.
+    
+    Raises:
+        Exception: If the update operation fails.
+    """
+    if not project_id:
+        logger.warning("update_project_in_db called without project_id")
+        return None
+    if not project_data:
+        logger.warning("update_project_in_db called without project_data")
+        return None # Or perhaps fetch the existing data?
+
+    try:
+        # Ensure pipeline_id is not accidentally removed if present
+        # Supabase update only modifies provided fields
+        response: APIResponse = client.table('projects') \
+                                     .update(project_data) \
+                                     .eq('project_id', project_id) \
+                                     .execute()
+
+        # Check if the update was successful and affected rows
+        if response.data: 
+            logger.info(f"Successfully updated project with ID: {project_id}")
+            # The update response usually contains the updated record(s)
+            return response.data[0] # Return the first (and should be only) updated record
+        elif hasattr(response, 'error') and response.error:
+            logger.error(f"Error updating project {project_id}: {response.error}")
+            raise Exception(f"Database error during update: {response.error.message}")
+        else:
+            # This might mean the project_id didn't exist, though eq() usually handles this.
+            # Depending on exact Supabase client behavior, maybe return None or raise not found.
+            logger.warning(f"Update operation for project {project_id} returned no data and no error. Project might not exist.")
+            return None # Indicate project not found or update had no effect
+
+    except Exception as e:
+        logger.error(f"An unexpected error occurred updating project {project_id}: {e}", exc_info=True)
+        raise # Re-raise the exception
+
 async def count_projects(client: Client) -> int:
     """Counts the total number of projects in the Supabase 'projects' table."""
     try:

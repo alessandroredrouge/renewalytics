@@ -50,6 +50,7 @@ export interface ProjectData {
 
 // Interface for data needed by the createProject function, matching modal's output
 import { ProjectCreateData } from "@/components/modals/newProjectModal";
+import { ActiveProjectState } from "@/contexts/ProjectDataContext"; // Import the context state type
 
 /**
  * Fetches the list of pipelines from the backend API.
@@ -264,6 +265,62 @@ export const getProjectDetails = async (
     return data;
   } catch (error) {
     console.error(`Failed to fetch details for project ${projectId}:`, error);
+    throw error; // Re-throw so the component can handle it
+  }
+};
+
+/**
+ * Updates an existing project via the backend API.
+ * @param projectId - The ID of the project to update.
+ * @param projectData - The full updated project data object.
+ * @returns A promise that resolves to the updated project data.
+ * @throws An error if the network response is not ok or projectId is missing.
+ */
+export const updateProject = async (
+  projectId: string | null,
+  projectData: ActiveProjectState | null // Use the context state type
+): Promise<ProjectData> => {
+  if (!projectId || projectId === "sandbox") {
+    // Prevent updating sandbox ID
+    console.error("updateProject called with invalid projectId:", projectId);
+    throw new Error("Cannot update project without a valid saved ID.");
+  }
+  if (!projectData) {
+    console.error("updateProject called without projectData");
+    throw new Error("Cannot update project without data.");
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        // Add Authorization header if needed
+      },
+      // Send the entire projectData object. The backend schema (ProjectUpdate)
+      // ensures only relevant fields are processed.
+      body: JSON.stringify(projectData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (response.status === 404) {
+        throw new Error(
+          `Project not found (ID: ${projectId}) when attempting to update.`
+        );
+      }
+      const errorMessage =
+        errorData?.detail ||
+        `HTTP error! status: ${response.status} while updating project`;
+      console.error("Error updating project:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const updatedProject: ProjectData = await response.json();
+    console.log(`Updated project ${projectId}:`, updatedProject); // For debugging
+    return updatedProject;
+  } catch (error) {
+    console.error(`Failed to update project ${projectId}:`, error);
     throw error; // Re-throw so the component can handle it
   }
 };

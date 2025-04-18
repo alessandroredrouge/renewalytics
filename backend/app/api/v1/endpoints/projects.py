@@ -8,10 +8,11 @@ from app.services.supabase_client import (
     get_supabase_client, 
     insert_project, 
     fetch_projects_for_pipeline,
-    fetch_project_by_id
+    fetch_project_by_id,
+    update_project_in_db
 )
 # Import schemas
-from app.schemas.projects_schema import ProjectCreate, ProjectResponse
+from app.schemas.projects_schema import ProjectCreate, ProjectResponse, ProjectUpdate
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -74,3 +75,37 @@ async def get_project_details(
     except Exception as e:
         logger.error(f"Error fetching project {project_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error fetching project details")
+
+# --- PUT endpoint for updating a project --- 
+@router.put("/{project_id}", response_model=ProjectResponse)
+async def update_existing_project(
+    project_id: str,
+    project_update_data: ProjectUpdate, # Use the ProjectUpdate schema for input
+    supabase_client: Client = Depends(get_supabase_client)
+):
+    """Endpoint to update an existing project by its ID."""
+    logger.info(f"Received request to update project_id: {project_id}")
+    
+    # Convert Pydantic model to dict, excluding unset fields for partial updates
+    # Although frontend will likely send the full state, this is good practice
+    update_dict = project_update_data.model_dump(exclude_unset=True)
+
+    if not update_dict:
+        logger.warning(f"Update request for project {project_id} received with no data to update.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No update data provided")
+
+    try:
+        updated_project = await update_project_in_db(supabase_client, project_id, update_dict)
+        
+        if updated_project is None:
+            logger.warning(f"Attempted to update project {project_id}, but it was not found.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+            
+        logger.info(f"Successfully updated project with ID: {project_id}")
+        # FastAPI will validate the returned dict against ProjectResponse
+        return updated_project
+    except HTTPException as http_exc: # Re-raise HTTP exceptions explicitly
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Error updating project {project_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error updating project: {str(e)}")

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Plus, X, Loader2, Save, Play } from "lucide-react";
 import { useView } from "@/contexts/ViewContext";
 import { SelectProjectModal } from "@/components/modals/selectProjectModal";
+import { SelectPipelineForSaveModal } from "@/components/modals/SelectPipelineForSaveModal";
 import {
   Tooltip,
   TooltipContent,
@@ -13,7 +14,12 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useProjectData } from "@/contexts/ProjectDataContext";
-import { getProjectDetails } from "@/lib/apiClient";
+import {
+  getProjectDetails,
+  updateProject,
+  createProject,
+  ProjectData,
+} from "@/lib/apiClient";
 import { toast } from "sonner";
 
 interface OpenedProject {
@@ -23,7 +29,8 @@ interface OpenedProject {
 
 const Navbar = () => {
   const { setView, setActiveProjectId, activeProjectId, view } = useView();
-  const { projectData, setProjectData, isSaved } = useProjectData();
+  const { projectData, setProjectData, isSaved, markAsSaved, projectId } =
+    useProjectData();
   const navigate = useNavigate();
   const [openedSavedProjects, setOpenedSavedProjects] = useState<
     OpenedProject[]
@@ -33,7 +40,10 @@ const Navbar = () => {
   );
   const [isSelectProjectModalOpen, setIsSelectProjectModalOpen] =
     useState(false);
+  const [isSelectPipelineModalOpen, setIsSelectPipelineModalOpen] =
+    useState(false);
   const [isLoadingProject, setIsLoadingProject] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setLocalActiveViewId(activeProjectId);
@@ -134,9 +144,83 @@ const Navbar = () => {
     }
   };
 
-  const handleSaveProject = () => {
-    console.log("Save button clicked. Current state:", projectData);
-    toast.info("Save functionality not yet implemented.");
+  const handleSaveProject = async () => {
+    if (isSaved || !projectData) {
+      console.log("Project already saved or no data to save.");
+      return;
+    }
+    if (isSaving) return;
+
+    if (projectId && projectId !== "sandbox") {
+      setIsSaving(true);
+      console.log(`Attempting to update project ID: ${projectId}`);
+      try {
+        const updatedData = await updateProject(projectId, projectData);
+        markAsSaved();
+        toast.success("Project saved successfully!");
+      } catch (error) {
+        console.error("Failed to save project:", error);
+        toast.error("Failed to save project", {
+          description:
+            error instanceof Error ? error.message : "Please try again.",
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    } else if (projectId === "sandbox") {
+      console.log(
+        "Save clicked for Sandbox project. Opening pipeline selector."
+      );
+      setIsSelectPipelineModalOpen(true);
+    } else {
+      console.error("Save clicked but project state is inconsistent.");
+      toast.error("Cannot save project: Invalid project state.");
+    }
+  };
+
+  const handlePipelineSelectedForSave = async (selectedPipelineId: string) => {
+    setIsSelectPipelineModalOpen(false);
+    if (!projectData) {
+      toast.error("Cannot save: No project data found.");
+      return;
+    }
+
+    setIsSaving(true);
+    console.log(
+      `Attempting to save Sandbox project to pipeline: ${selectedPipelineId}`
+    );
+
+    const dataToCreate = {
+      ...projectData,
+      pipeline_id: selectedPipelineId,
+      project_id: undefined,
+    };
+    if (!dataToCreate.name) {
+      dataToCreate.name = "Untitled Sandbox Project";
+    }
+
+    try {
+      const savedProject = await createProject(dataToCreate as ProjectData);
+      toast.success("Sandbox project saved successfully!", {
+        description: `Project Name: ${savedProject.name}`,
+      });
+
+      setProjectData(savedProject);
+      setOpenedSavedProjects((prev) => [
+        ...prev,
+        { id: savedProject.project_id, name: savedProject.name },
+      ]);
+      setActiveProjectId(savedProject.project_id);
+      setLocalActiveViewId(savedProject.project_id);
+    } catch (error) {
+      console.error("Failed to save sandbox project:", error);
+      toast.error("Failed to save sandbox project", {
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleRunSimulation = () => {
@@ -252,12 +336,23 @@ const Navbar = () => {
                     size="icon"
                     className="h-8 w-8 mr-2"
                     onClick={handleSaveProject}
+                    disabled={isSaving || (isSaved && !isSandboxActive)}
                   >
-                    <Save size={16} />
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save size={16} />
+                    )}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{isSaved ? "Project Saved" : "Save Project Changes"}</p>
+                  <p>
+                    {isSaving
+                      ? "Saving..."
+                      : isSaved && !isSandboxActive
+                      ? "Project Saved"
+                      : "Save Project"}
+                  </p>
                 </TooltipContent>
               </Tooltip>
               <Tooltip>
@@ -283,6 +378,11 @@ const Navbar = () => {
           isOpen={isSelectProjectModalOpen}
           onClose={handleCloseProjectModal}
           onProjectSelect={handleProjectSelect}
+        />
+        <SelectPipelineForSaveModal
+          isOpen={isSelectPipelineModalOpen}
+          onClose={() => setIsSelectPipelineModalOpen(false)}
+          onPipelineSelect={handlePipelineSelectedForSave}
         />
       </header>
     </TooltipProvider>
