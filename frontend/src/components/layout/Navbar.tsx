@@ -151,11 +151,19 @@ const Navbar = () => {
     }
     if (isSaving) return;
 
-    if (projectId && projectId !== "sandbox") {
+    if (activeProjectId && activeProjectId !== "sandbox") {
+      const idToUpdate = projectData?.project_id;
+      if (!idToUpdate) {
+        console.error(
+          "Save clicked for existing project but context has no project_id."
+        );
+        toast.error("Cannot save project: Missing project ID.");
+        return;
+      }
       setIsSaving(true);
-      console.log(`Attempting to update project ID: ${projectId}`);
+      console.log(`Attempting to update project ID: ${idToUpdate}`);
       try {
-        const updatedData = await updateProject(projectId, projectData);
+        const updatedData = await updateProject(idToUpdate, projectData);
         markAsSaved();
         toast.success("Project saved successfully!");
       } catch (error) {
@@ -167,13 +175,15 @@ const Navbar = () => {
       } finally {
         setIsSaving(false);
       }
-    } else if (projectId === "sandbox") {
+    } else if (activeProjectId === "sandbox") {
       console.log(
         "Save clicked for Sandbox project. Opening pipeline selector."
       );
       setIsSelectPipelineModalOpen(true);
     } else {
-      console.error("Save clicked but project state is inconsistent.");
+      console.error(
+        "Save clicked but project state is inconsistent (activeProjectId invalid)."
+      );
       toast.error("Cannot save project: Invalid project state.");
     }
   };
