@@ -11,7 +11,7 @@ numpy==1.26.0
 numpy_financial==1.0.0
 
 # Database
-supabase==2.3.0
+supabase==2.9.0
 openpyxl>=3.0.9
 
 # Optimization
