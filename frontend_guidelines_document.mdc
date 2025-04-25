@@ -1,0 +1,47 @@
+# Frontend Development Guidelines
+
+## State Management
+
+*   **Global View State:** Managed by `ViewContext` (`frontend/src/contexts/ViewContext.tsx`). Accessed via `useView()`. Controls whether the UI is in "general" or "project" mode and tracks the `activeProjectId` (which can be a UUID, "sandbox", or `null`).
+*   **Active Project State:** Managed by `ProjectDataContext` (`frontend/src/contexts/ProjectDataContext.tsx`). Accessed via `useProjectData()`. Holds the complete data (`ActiveProjectState` type, based on `ProjectData` schema) for the currently loaded or sandbox project. Also tracks the `isSaved` status.
+*   **Local Component State:** Use standard `useState` for UI-specific state (e.g., modal visibility, local input fields like `revenueStreamsInput` in `ProjectOverview`).
+
+## Data Flow and UI Interaction
+
+*   **Loading Data:** When opening an existing project, `Navbar.handleProjectSelect` uses `apiClient.getProjectDetails` and populates `ProjectDataContext` using `setProjectData`.
+*   **Sandbox Initialization:** `selectProjectModal.handleStartSandbox` initializes `ProjectDataContext` (likely with defaults or null) and sets `activeProjectId` to `"sandbox"`.
+*   **Displaying Data:** Components within the project view should always read data from `useProjectData().projectData`. They should handle potential null/default states gracefully, especially for sandbox mode.
+*   **Editing Data:**
+    *   Use an `isEditing` state toggle within components like `ProjectOverview.tsx`.
+    *   Render display components (`DetailItem`) or input components (`InputItem`, `Input`, `Textarea`) based on `isEditing`.
+    *   Input `onChange` handlers should call `updateProjectField(fieldName, processedValue)` from `useProjectData`. This updates the central context and sets `isSaved` to `false`.
+    *   For complex inputs like comma-separated strings (`revenue_streams`), use local component state for the input field and update the context `onBlur` or when editing is finished.
+
+## Saving Data
+
+*   The main "Save" button is located in `Navbar.tsx`.
+*   Its state (enabled/disabled, appearance) is driven by `isSaved` from `ProjectDataContext`.
+*   `Navbar.handleSaveProject`:
+    *   Checks `projectId` from context.
+    *   Calls `apiClient.updateProject` for existing projects.
+    *   Opens `SelectPipelineForSaveModal` for sandbox projects.
+    *   `Navbar.handlePipelineSelectedForSave` calls `apiClient.createProject` after pipeline selection.
+    *   Updates context (`markAsSaved`, `setProjectData` with new ID) on success.
+
+## API Communication
+
+*   All backend interactions should go through functions defined in `frontend/src/lib/apiClient.ts`.
+*   Handle loading states and errors appropriately in components calling API functions, often using `useState` and displaying feedback (skeletons, alerts, toasts).
+*   Use `sonner` for toast notifications.
+
+## UI Components & Styling
+
+*   Use components from `shadcn/ui` library (`@/components/ui/...`).
+*   Follow existing styling conventions (Tailwind CSS utility classes).
+*   Create reusable presentational components where appropriate (`DetailItem`, `InputItem`).
+*   Use modals (`Dialog` component) for focused actions like creation or selection.
+
+## Navigation
+
+*   Managed by `react-router-dom` (setup in `App.tsx`).
+*   Navigation between General/Project views or specific project tabs is primarily handled in `Navbar.tsx`, often triggered by context changes (`activeProjectId`) or button clicks, using the `useNavigate` hook. 

@@ -24,7 +24,13 @@ import {
 } from "@/lib/apiClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, PlusCircle } from "lucide-react";
+import {
+  useProjectData,
+  ActiveProjectState,
+} from "@/contexts/ProjectDataContext";
+import { useView } from "@/contexts/ViewContext";
+import { useNavigate } from "react-router-dom";
 
 // Match PipelineData structure used elsewhere
 interface PipelineData {
@@ -56,24 +62,21 @@ export const SelectProjectModal: React.FC<SelectProjectModalProps> = ({
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
 
-  // Reset state when modal opens/closes or pipelines load
+  const { setProjectData } = useProjectData();
+  const { setView, setActiveProjectId } = useView();
+  const navigate = useNavigate();
+
   useEffect(() => {
     if (isOpen) {
-      // Reset selections and fetch pipelines when opening
       setSelectedPipelineId("");
       setSelectedProjectId("");
       setProjects([]);
       setProjectsError(null);
       fetchPipelinesData();
     } else {
-      // Optionally clear data when closing to avoid stale data next time
-      setPipelines([]);
-      setProjects([]);
-      setIsPipelinesLoading(true);
     }
   }, [isOpen]);
 
-  // Fetch pipelines
   const fetchPipelinesData = async () => {
     setIsPipelinesLoading(true);
     setPipelinesError(null);
@@ -90,21 +93,20 @@ export const SelectProjectModal: React.FC<SelectProjectModalProps> = ({
     }
   };
 
-  // Fetch projects when pipeline changes
   useEffect(() => {
     if (selectedPipelineId) {
       fetchProjectsData(selectedPipelineId);
     } else {
-      setProjects([]); // Clear projects if no pipeline is selected
-      setSelectedProjectId(""); // Reset project selection
+      setProjects([]);
+      setSelectedProjectId("");
     }
   }, [selectedPipelineId]);
 
   const fetchProjectsData = async (pipelineId: string) => {
     setIsProjectsLoading(true);
     setProjectsError(null);
-    setProjects([]); // Clear previous projects
-    setSelectedProjectId(""); // Reset project selection
+    setProjects([]);
+    setSelectedProjectId("");
     try {
       const fetchedProjects = await getProjectsForPipeline(pipelineId);
       setProjects(fetchedProjects);
@@ -122,14 +124,13 @@ export const SelectProjectModal: React.FC<SelectProjectModalProps> = ({
 
   const handlePipelineChange = (pipelineId: string) => {
     setSelectedPipelineId(pipelineId);
-    // Project fetching is handled by the useEffect hook
   };
 
   const handleProjectChange = (projectId: string) => {
     setSelectedProjectId(projectId);
   };
 
-  const handleConfirm = () => {
+  const handleConfirmOpenExisting = () => {
     const selectedProject = projects.find(
       (p) => p.project_id === selectedProjectId
     );
@@ -139,30 +140,69 @@ export const SelectProjectModal: React.FC<SelectProjectModalProps> = ({
         name: selectedProject.name,
       });
     } else {
-      // Handle case where project isn't found (shouldn't happen if UI is correct)
       console.error("Selected project not found");
     }
   };
 
+  const handleStartSandbox = () => {
+    console.log("Starting Sandbox Project");
+
+    const defaultSandboxState: ActiveProjectState = {
+      project_id: null as any,
+      pipeline_id: "",
+      name: "New Sandbox Project",
+      description: "Unsaved project. Fill in details and save.",
+      country: null,
+      location: null,
+      type_of_plant: [],
+      technology: null,
+      hybrid: null,
+      nominal_power_capacity: null,
+      max_discharging_power: null,
+      max_charging_power: null,
+      nominal_energy_capacity: null,
+      max_soc: null,
+      min_soc: null,
+      charging_efficiency: null,
+      discharging_efficiency: null,
+      calendar_lifetime: null,
+      cycling_lifetime: null,
+      capex_power: null,
+      capex_energy: null,
+      capex_tot: null,
+      opex_power_yr: null,
+      opex_energy_yr: null,
+      opex_yr: null,
+      revenue_streams: null,
+      created_at: new Date().toISOString(),
+    };
+
+    setProjectData(defaultSandboxState);
+    setView("project");
+    setActiveProjectId("sandbox");
+    navigate("/project-overview");
+    onClose();
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Select Project</DialogTitle>
+          <DialogTitle>Open or Start Project</DialogTitle>
           <DialogDescription>
-            Choose a pipeline and then select the project you want to open.
+            Select an existing project or start a new one in sandbox mode.
           </DialogDescription>
         </DialogHeader>
 
-        {pipelinesError && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error Loading Pipelines</AlertTitle>
-            <AlertDescription>{pipelinesError}</AlertDescription>
-          </Alert>
-        )}
-
-        <div className="grid gap-4 py-4">
+        <div className="py-4 space-y-4 border-b pb-6 mb-4">
+          <h4 className="font-medium text-sm mb-2">Open Existing Project</h4>
+          {pipelinesError && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error Loading Pipelines</AlertTitle>
+              <AlertDescription>{pipelinesError}</AlertDescription>
+            </Alert>
+          )}
           <div className="grid grid-cols-4 items-center gap-4">
             <label
               htmlFor="pipeline-select"
@@ -208,7 +248,7 @@ export const SelectProjectModal: React.FC<SelectProjectModalProps> = ({
           </div>
 
           {projectsError && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="mt-2">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Error Loading Projects</AlertTitle>
               <AlertDescription>{projectsError}</AlertDescription>
@@ -267,19 +307,26 @@ export const SelectProjectModal: React.FC<SelectProjectModalProps> = ({
               </Select>
             )}
           </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
           <Button
-            onClick={handleConfirm}
+            className="w-full mt-2"
+            onClick={handleConfirmOpenExisting}
             disabled={!selectedProjectId || isProjectsLoading}
           >
-            Open Project
+            Open Selected Project
           </Button>
-        </DialogFooter>
+        </div>
+
+        <div>
+          <h4 className="font-medium text-sm mb-2">Or Start New</h4>
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={handleStartSandbox}
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Start New Sandbox Project
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
