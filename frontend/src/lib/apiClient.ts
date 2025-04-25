@@ -324,3 +324,98 @@ export const updateProject = async (
     throw error; // Re-throw so the component can handle it
   }
 };
+
+/**
+ * Fetches available countries from the energy_prices table.
+ * @returns A promise that resolves to an array of country names.
+ * @throws An error if the network response is not ok.
+ */
+export const getAvailableCountries = async (): Promise<string[]> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/projects/available-countries`
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData?.detail || `HTTP error! status: ${response.status}`;
+      console.error("Error fetching available countries:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data: string[] = await response.json();
+    console.log("Fetched available countries:", data);
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch available countries:", error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches available markets for a specific country from the energy_prices table.
+ * @param country The country to fetch markets for
+ * @returns A promise that resolves to an array of market names.
+ * @throws An error if the network response is not ok.
+ */
+export const getMarketsByCountry = async (
+  country: string
+): Promise<string[]> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/projects/markets-by-country/${encodeURIComponent(
+        country
+      )}`
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData?.detail || `HTTP error! status: ${response.status}`;
+      console.error(
+        `Error fetching markets for country ${country}:`,
+        errorMessage
+      );
+      throw new Error(errorMessage);
+    }
+
+    const data: string[] = await response.json();
+    console.log(`Fetched markets for country ${country}:`, data);
+    return data;
+  } catch (error) {
+    console.error(`Failed to fetch markets for country ${country}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches available market options (countries and their associated revenue streams) from the backend.
+ * @returns A promise that resolves to an object containing countries array and marketsByCountry record.
+ * @throws An error if the network response is not ok.
+ */
+export interface MarketOptionsData {
+  countries: string[];
+  marketsByCountry: Record<string, string[]>;
+}
+
+export const getMarketOptions = async (): Promise<MarketOptionsData> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/projects/market-options`);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData?.detail || `HTTP error! status: ${response.status}`;
+      console.error("Error fetching market options:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data: MarketOptionsData = await response.json();
+    console.log("Fetched market options:", data); // For debugging
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch market options:", error);
+    throw error;
+  }
+};

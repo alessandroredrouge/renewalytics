@@ -55,6 +55,49 @@ async def get_projects(
         logger.error(f"Error fetching projects for pipeline {pipeline_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error fetching projects")
 
+# --- GET endpoint for available countries ---
+@router.get("/available-countries", response_model=list)
+async def get_available_countries(
+    supabase_client: Client = Depends(get_supabase_client)
+):
+    """Endpoint to fetch available countries from distinct_countries view."""
+    logger.info("Received request to get available countries")
+    try:
+        # Query the distinct_countries view
+        response = supabase_client.table("distinct_countries").select("country").execute()
+        
+        unique_countries = [item["country"] for item in response.data]
+        
+        logger.info(f"Found {len(unique_countries)} distinct countries: {unique_countries}")
+        return sorted(unique_countries)
+        
+    except Exception as e:
+        logger.error(f"Error fetching available countries: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error fetching countries: {str(e)}")
+
+@router.get("/markets-by-country/{country}", response_model=list)
+async def get_markets_by_country(
+    country: str,
+    supabase_client: Client = Depends(get_supabase_client)
+):
+    """Endpoint to fetch available markets using get_markets_by_country function."""
+    logger.info(f"Received request to get markets for country: {country}")
+    try:
+        # Call the database function using rpc
+        response = supabase_client.rpc(
+            "get_markets_by_country", 
+            {"country_param": country}
+        ).execute()
+        
+        unique_markets = [item["market"] for item in response.data]
+        
+        logger.info(f"Found {len(unique_markets)} distinct markets for {country}: {unique_markets}")
+        return sorted(unique_markets)
+        
+    except Exception as e:
+        logger.error(f"Error fetching markets for country {country}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error fetching markets: {str(e)}")
+
 # GET endpoint for a single project by ID
 @router.get("/{project_id}", response_model=ProjectResponse)
 async def get_project_details(

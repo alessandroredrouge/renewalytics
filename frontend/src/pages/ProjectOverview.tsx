@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useView } from "@/contexts/ViewContext";
-import { ProjectData } from "@/lib/apiClient";
+import {
+  ProjectData,
+  getAvailableCountries,
+  getMarketsByCountry,
+} from "@/lib/apiClient";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Edit, CheckCircle } from "lucide-react";
+import { AlertCircle, Edit, CheckCircle, Info } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -20,7 +24,6 @@ import {
   Clock,
   BarChart3,
   DollarSign,
-  Info,
   User,
   Zap,
 } from "lucide-react";
@@ -34,6 +37,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formatValue = (
   value: any,
@@ -133,6 +143,84 @@ const ProjectOverview = () => {
     "total"
   );
 
+  // State for country and market options
+  const [availableCountries, setAvailableCountries] = useState<string[]>([]);
+  const [availableMarkets, setAvailableMarkets] = useState<string[]>([]);
+  const [selectedMarkets, setSelectedMarkets] = useState<string[]>([]);
+  const [isLoadingCountries, setIsLoadingCountries] = useState(false);
+  const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);
+
+  // For project data calculations
+  const projectData = projectDataFromContext;
+  const defaultSandboxData: Partial<ProjectData> = {
+    name: "New Sandbox Project",
+    description: "Unsaved project. Fill in details and save.",
+    country: null,
+    location: null,
+    type_of_plant: [],
+    technology: null,
+    nominal_power_capacity: null,
+  };
+
+  // Calculate display data early for use in useEffect
+  const displayData = useMemo(() => {
+    return activeProjectId === "sandbox" && !projectData
+      ? (defaultSandboxData as ProjectData)
+      : projectData;
+  }, [activeProjectId, projectData, defaultSandboxData]);
+
+  // Fetch available countries when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      async function fetchCountries() {
+        setIsLoadingCountries(true);
+        try {
+          const countries = await getAvailableCountries();
+          setAvailableCountries(countries);
+        } catch (error) {
+          console.error("Failed to load available countries:", error);
+        } finally {
+          setIsLoadingCountries(false);
+        }
+      }
+      fetchCountries();
+    }
+  }, [isEditing]);
+
+  // Fetch markets when country changes
+  useEffect(() => {
+    if (isEditing && displayData?.country) {
+      async function fetchMarkets() {
+        setIsLoadingMarkets(true);
+        try {
+          const markets = await getMarketsByCountry(displayData.country);
+          setAvailableMarkets(markets);
+
+          // Filter existing revenue streams to only include valid ones for this country
+          if (
+            displayData.revenue_streams &&
+            displayData.revenue_streams.length > 0
+          ) {
+            const validMarkets = displayData.revenue_streams.filter((market) =>
+              markets.includes(market)
+            );
+            setSelectedMarkets(validMarkets);
+          }
+        } catch (error) {
+          console.error(
+            `Failed to load markets for country ${displayData.country}:`,
+            error
+          );
+          setAvailableMarkets([]);
+        } finally {
+          setIsLoadingMarkets(false);
+        }
+      }
+      fetchMarkets();
+    }
+  }, [isEditing, displayData?.country]);
+
+  // Set initial revenue streams input when project data changes
   useEffect(() => {
     if (projectDataFromContext) {
       setRevenueStreamsInput(
@@ -140,6 +228,11 @@ const ProjectOverview = () => {
           ? projectDataFromContext.revenue_streams.join(", ")
           : ""
       );
+
+      // Initialize selected markets from project data
+      if (projectDataFromContext.revenue_streams) {
+        setSelectedMarkets(projectDataFromContext.revenue_streams);
+      }
     }
   }, [projectDataFromContext]);
 
@@ -178,23 +271,6 @@ const ProjectOverview = () => {
       </div>
     );
   }
-
-  const projectData = projectDataFromContext;
-
-  const defaultSandboxData: Partial<ProjectData> = {
-    name: "New Sandbox Project",
-    description: "Unsaved project. Fill in details and save.",
-    country: null,
-    location: null,
-    type_of_plant: [],
-    technology: null,
-    nominal_power_capacity: null,
-  };
-
-  const displayData =
-    activeProjectId === "sandbox" && !projectData
-      ? (defaultSandboxData as ProjectData)
-      : projectData;
 
   if (!displayData) {
     return (
@@ -259,6 +335,7 @@ const ProjectOverview = () => {
   };
 
   const updateRevenueStreamsContext = () => {
+    // Only use this for the text input mode (for backward compatibility)
     const processedArray = revenueStreamsInput
       .split(",")
       .map((s) => s.trim())
@@ -274,9 +351,26 @@ const ProjectOverview = () => {
     }
   };
 
+  // New handler for market selection via checkboxes
+  const handleMarketSelectionChange = (market: string, checked: boolean) => {
+    if (checked) {
+      setSelectedMarkets((prev) => [...prev, market]);
+    } else {
+      setSelectedMarkets((prev) => prev.filter((m) => m !== market));
+    }
+  };
+
+  // Save selected markets when editing is done
   const handleToggleEdit = () => {
     if (isEditing) {
-      updateRevenueStreamsContext();
+      // If using checkboxes, update from selectedMarkets state
+      if (displayData.country && availableMarkets.length > 0) {
+        const newValue = selectedMarkets.length > 0 ? selectedMarkets : null;
+        updateProjectField("revenue_streams", newValue);
+      } else {
+        // Fallback to text input for backward compatibility
+        updateRevenueStreamsContext();
+      }
     }
     setIsEditing(!isEditing);
   };
@@ -843,13 +937,32 @@ const ProjectOverview = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 mb-4">
                   {isEditing ? (
                     <>
-                      <InputItem
-                        label="Country"
-                        id="country"
-                        type="text"
-                        value={displayData.country}
-                        onChange={(v) => handleFieldChange("country", v)}
-                      />
+                      <div>
+                        <Label
+                          htmlFor="country"
+                          className="text-xs text-muted-foreground"
+                        >
+                          Country
+                        </Label>
+                        <Select
+                          value={displayData.country || ""}
+                          onValueChange={(value) => {
+                            handleFieldChange("country", value);
+                          }}
+                          disabled={isLoadingCountries}
+                        >
+                          <SelectTrigger id="country" className="w-full">
+                            <SelectValue placeholder="Select a country" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableCountries.map((country) => (
+                              <SelectItem key={country} value={country}>
+                                {country}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <InputItem
                         label="Location"
                         id="location"
@@ -876,15 +989,48 @@ const ProjectOverview = () => {
                     Revenue Streams
                   </Label>
                   {isEditing ? (
-                    <Input
-                      id="revenue-streams"
-                      type="text"
-                      value={revenueStreamsInput}
-                      onChange={(e) => setRevenueStreamsInput(e.target.value)}
-                      onBlur={updateRevenueStreamsContext}
-                      placeholder="Enter streams, comma-separated"
-                      className="text-sm mt-1"
-                    />
+                    displayData.country && availableMarkets.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                        {isLoadingMarkets ? (
+                          <p className="text-sm text-muted-foreground">
+                            Loading available markets...
+                          </p>
+                        ) : (
+                          availableMarkets.map((market) => (
+                            <div
+                              key={market}
+                              className="flex items-center space-x-2"
+                            >
+                              <Checkbox
+                                id={`market-${market}`}
+                                checked={selectedMarkets.includes(market)}
+                                onCheckedChange={(checked) => {
+                                  handleMarketSelectionChange(
+                                    market,
+                                    checked === true
+                                  );
+                                }}
+                              />
+                              <Label
+                                htmlFor={`market-${market}`}
+                                className="text-sm cursor-pointer"
+                              >
+                                {market}
+                              </Label>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    ) : (
+                      // Message to select a country first
+                      <div className="flex items-center space-x-2 mt-2 p-3 bg-muted rounded-md">
+                        <Info size={18} className="text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Please select a country above to see available revenue
+                          streams
+                        </p>
+                      </div>
+                    )
                   ) : displayData.revenue_streams &&
                     displayData.revenue_streams.length > 0 ? (
                     <ul className="mt-1 space-y-1">
