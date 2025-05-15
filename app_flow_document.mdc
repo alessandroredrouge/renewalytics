@@ -1,0 +1,52 @@
+# Renewalytics Application Flow & UX
+
+This document outlines the user experience and data flow within the Renewalytics web application.
+
+## Core Concepts
+
+1.  **Views:** The application is broadly divided into two main contexts managed by `ViewContext`:
+    *   **General View:** Shows overarching dashboards (`Dashboard.tsx`), pipeline/project management (`Pipeline.tsx`), and settings (`Settings.tsx`). The sidebar (`AppSidebar.tsx`) reflects these options.
+    *   **Project View:** Activated when a user opens or starts a project. The sidebar switches to project-specific pages (`ProjectOverview.tsx`, `DispatchLogic.tsx`, `Financials.tsx`, etc.). The `Navbar.tsx` displays tabs for opened projects.
+
+2.  **Pipelines & Projects:** Projects are organized within Pipelines. Pipelines are created via `Pipeline.tsx` and stored permanently.
+
+3.  **Project States:**
+    *   **Saved Project:** Exists permanently in the Supabase `projects` table, linked to a `pipeline_id`.
+    *   **Sandbox Project:** A temporary, unsaved project state held entirely in the frontend context. Identified by `activeProjectId === "sandbox"`.
+    *   **Project Stub:** A minimal project record (name, pipeline_id, etc.) saved permanently via the "New Project" button in `Pipeline.tsx`. Requires opening later to add full details.
+
+## Data Handling Workflow
+
+1.  **Starting/Opening:**
+    *   User clicks '+' in `Navbar.tsx`, opening `selectProjectModal.tsx`.
+    *   **Open Existing:** User selects Pipeline -> Project. `Navbar.handleProjectSelect` fetches full project data (`apiClient.getProjectDetails`) and loads it into `ProjectDataContext`, marking `isSaved = true`.
+    *   **Start Sandbox:** User clicks "Start New Sandbox Project". `selectProjectModal.handleStartSandbox` clears/initializes `ProjectDataContext` (with default data), sets `activeProjectId` to `"sandbox"`, sets `view` to `"project"`, and navigates to project view.
+
+2.  **Viewing/Editing Project Data:**
+    *   Project-specific pages (e.g., `ProjectOverview.tsx`, `Financials.tsx`) read their data *only* from `ProjectDataContext` via the `useProjectData` hook.
+    *   When a user enters "Edit Mode" (e.g., via a button in `ProjectOverview.tsx`):
+        *   Input fields are shown, populated from `ProjectDataContext`.
+        *   `onChange` handlers call `updateProjectField` from the context.
+        *   `updateProjectField` updates the state in `ProjectDataContext` and sets `isSaved = false`.
+
+3.  **Saving Changes:**
+    *   The "Save" button in `Navbar.tsx` becomes active when `isSaved === false`.
+    *   `Navbar.handleSaveProject` is triggered on click:
+        *   **If `projectId` is a UUID (Existing Project):** Calls `apiClient.updateProject` (`PUT /projects/{id}`) with the current data from `ProjectDataContext`. On success, calls `markAsSaved()` in the context.
+        *   **If `projectId === "sandbox"`:** Opens `SelectPipelineForSaveModal.tsx`.
+            *   User selects a pipeline.
+            *   `Navbar.handlePipelineSelectedForSave` is called with the `pipeline_id`.
+            *   It prepares the data from `ProjectDataContext`, adds the `pipeline_id`.
+            *   Calls `apiClient.createProject` (`POST /projects`) with the full project data.
+            *   On success, updates `ProjectDataContext` with the returned data (including the new real `project_id`), adds the project to Navbar tabs, and marks as saved.
+
+4.  **Running Simulations:**
+    *   Triggered by the "Run Simulation" button in `Navbar.tsx`.
+    *   `Navbar.handleRunSimulation` (to be implemented) reads the current project parameters from `ProjectDataContext`.
+    *   Calls backend simulation endpoint(s) (e.g., `POST /calculate_financials`, TBD) with this data.
+    *   Backend performs calculations using functions like `financials.calculate_project_financials`.
+    *   Results are returned to the frontend.
+
+5.  **Handling Results:**
+    *   Returned simulation results are temporarily stored in `ProjectDataContext`.
+    *   (Planned) User can explicitly save results as a "Scenario" (using `simulations` table) via a "Save Scenario" button. This saves parameter snapshots and results (key metrics in DB, details in Storage). See `implementation_plan.mdc`. 

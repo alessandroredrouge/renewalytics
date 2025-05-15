@@ -14,6 +14,8 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import ProjectOverview from "./pages/ProjectOverview";
 import Pipeline from "./pages/Pipeline";
+import { ViewProvider } from "./contexts/ViewContext";
+import { ProjectDataProvider } from "./contexts/ProjectDataContext";
 
 const queryClient = new QueryClient();
 
@@ -23,20 +25,24 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dispatch-logic" element={<DispatchLogic />} />
-            <Route path="/revenue-streams" element={<RevenueStreams />} />
-            <Route path="/financials" element={<Financials />} />
-            <Route path="/scenarios" element={<Scenarios />} />
-            <Route path="/results" element={<Results />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/project-overview" element={<ProjectOverview />} />
-            <Route path="/pipeline" element={<Pipeline />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <ViewProvider>
+          <ProjectDataProvider>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/dispatch-logic" element={<DispatchLogic />} />
+                <Route path="/revenue-streams" element={<RevenueStreams />} />
+                <Route path="/financials" element={<Financials />} />
+                <Route path="/scenarios" element={<Scenarios />} />
+                <Route path="/results" element={<Results />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/project-overview" element={<ProjectOverview />} />
+                <Route path="/pipeline" element={<Pipeline />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ProjectDataProvider>
+        </ViewProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

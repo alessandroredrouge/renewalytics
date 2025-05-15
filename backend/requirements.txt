@@ -19,7 +19,7 @@ requests>=2.26.0
 tqdm>=4.62.0
 
 # Database
-supabase==2.3.0
+supabase==2.9.0
 openpyxl>=3.0.9
 
 # Optimization

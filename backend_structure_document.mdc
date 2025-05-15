@@ -1,0 +1,59 @@
+# Backend Structure Guidelines
+
+## Framework
+
+*   FastAPI (Python)
+
+## API Structure
+
+*   Base path: `/api/v1/`
+*   Main router: `backend/app/api/v1/api.py` aggregates specific endpoint routers.
+*   Endpoint Routers: Located in `backend/app/api/v1/endpoints/`. Examples:
+    *   `pipelines.py`: Handles `/pipelines/` routes (GET, POST).
+    *   `projects.py`: Handles `/projects/` routes (GET all with filter, GET by ID, POST stub, PUT update).
+    *   `dashboard.py`: Handles `/dashboard/` routes (e.g., GET summary).
+    *   `simulations.py` (Planned): Will handle simulation-triggering endpoints (e.g., `POST /calculate_financials`).
+*   Use FastAPI `Depends` for dependency injection (e.g., getting Supabase client).
+*   Use standard HTTP methods (GET, POST, PUT, DELETE).
+*   Return appropriate HTTP status codes.
+*   Include logging (`logger`) within endpoints.
+
+## Database
+
+*   Supabase (PostgreSQL backend).
+*   Tables defined: `pipelines`, `projects`, `simulations` (previously `scenarios`, needs column check).
+
+## Database Interaction Layer
+
+*   Located in `backend/app/services/supabase_client.py`.
+*   Provides specific async functions to interact with Supabase tables (e.g., `fetch_pipelines`, `insert_project`, `fetch_project_by_id`, `update_project_in_db`, `count_projects`, `count_pipelines`).
+*   Uses `supabase-py` library.
+*   Handles basic database response checking and error logging.
+*   Connection details are loaded from `.env` file (`SUPABASE_URL`, `SUPABASE_ANON_KEY`).
+
+## Data Schemas (Validation & Serialization)
+
+*   Located in `backend/app/schemas/`.
+*   Uses Pydantic `BaseModel` for defining data structures.
+*   Key schemas:
+    *   `projects_schema.py`:
+        *   `ProjectBase`: Contains all possible (mostly optional) fields of a project.
+        *   `ProjectCreate`: **Minimal** schema for creating a project stub (pipeline_id, name, description, country, location, type_of_plant). Used by `POST /projects`.
+        *   `ProjectUpdate`: Inherits `ProjectBase`. Used for updating existing projects via `PUT /projects/{id}`. Expects potentially full project data.
+        *   `ProjectResponse`: Inherits `ProjectBase`, adds `project_id`, `created_at`. Used for API responses.
+    *   (Similar schemas exist/needed for Pipelines, Dashboard, Simulations/Scenarios).
+*   FastAPI uses these schemas for automatic request body validation and response serialization.
+
+## Business/Simulation Logic
+
+*   Core calculation logic resides outside the API layer:
+    *   `backend/app/financials/financials.py`: Contains `calculate_project_financials`.
+    *   `backend/app/logic/battery_optimization.py`: Contains `BatteryOptimizer` class.
+*   These modules are imported and called by the relevant simulation API endpoints (to be created in `simulations.py`).
+
+## Error Handling
+
+*   Endpoints should use `try...except` blocks.
+*   Log errors using the `logger`.
+*   Raise FastAPI `HTTPException` with appropriate status codes (e.g., 400, 404, 500) and detail messages for client feedback.
+*   Database interaction functions in `supabase_client.py` may raise exceptions to be caught by the endpoint handlers. 

@@ -1,0 +1,44 @@
+# Renewalytics Tech Stack
+
+This document outlines the core technologies used in the Renewalytics project.
+
+## Frontend
+
+*   **Framework/Library:** React
+*   **Language:** TypeScript
+*   **Build Tool:** Vite
+*   **Styling:** Tailwind CSS
+*   **UI Components:** shadcn/ui
+*   **Routing:** react-router-dom
+*   **State Management:**
+    *   React Context API (`ViewContext`, `ProjectDataContext`)
+    *   React `useState` for local component state
+*   **Data Fetching/Caching:** TanStack Query (`react-query`) (Initial setup present, usage may expand)
+*   **Notifications:** Sonner (for toasts)
+
+## Backend
+
+*   **Framework:** FastAPI
+*   **Language:** Python
+*   **Data Validation:** Pydantic
+*   **Database Client:** supabase-py
+*   **Server:** Uvicorn (implied by FastAPI standard deployment)
+
+## Database
+
+*   **Service:** Supabase
+*   **Underlying Engine:** PostgreSQL
+*   **Storage:** Supabase Storage (for detailed simulation results - planned)
+
+## Development
+
+*   **Version Control:** Git
+*   **Environment Variables:** python-dotenv (backend)
+*   **Code Editor:** Likely VS Code (based on user context)
+*   **Package Managers:** npm (frontend), pip (backend)
+
+## Infrastructure (Assumed/Typical)
+
+*   **Database Hosting:** Supabase Cloud
+*   **Backend Hosting:** (Not specified - could be Supabase Functions, Vercel, Render, AWS, etc.)
+*   **Frontend Hosting:** (Not specified - likely Vercel, Netlify, GitHub Pages, etc.) 
