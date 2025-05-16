@@ -761,7 +761,7 @@ const ProjectOverview = () => {
                         <>
                           {capexInputMode === "total" ? (
                             <InputItem
-                              label="Total CAPEX ($)"
+                              label="Total CAPEX (€)"
                               id="capex-tot"
                               type="number"
                               value={displayData.capex_tot}
@@ -769,13 +769,13 @@ const ProjectOverview = () => {
                                 handleFieldChange("capex_tot", v)
                               }
                               precision={0}
-                              unit="$"
+                              unit="€"
                               className="sm:col-span-2"
                             />
                           ) : (
                             <>
                               <InputItem
-                                label="CAPEX (Power, $/kW)"
+                                label="CAPEX (Power, €/kW)"
                                 id="capex-pwr"
                                 type="number"
                                 value={displayData.capex_power}
@@ -783,11 +783,11 @@ const ProjectOverview = () => {
                                   handleFieldChange("capex_power", v)
                                 }
                                 precision={0}
-                                unit="$/kW"
+                                unit="€/kW"
                               />
                               {isBessProject && (
                                 <InputItem
-                                  label="CAPEX (Energy, $/kWh)"
+                                  label="CAPEX (Energy, €/kWh)"
                                   id="capex-en"
                                   type="number"
                                   value={displayData.capex_energy}
@@ -795,7 +795,7 @@ const ProjectOverview = () => {
                                     handleFieldChange("capex_energy", v)
                                   }
                                   precision={0}
-                                  unit="$/kWh"
+                                  unit="€/kWh"
                                 />
                               )}
                             </>
@@ -806,20 +806,20 @@ const ProjectOverview = () => {
                           <DetailItem
                             label="Total CAPEX"
                             value={displayData.capex_tot}
-                            unit="$"
+                            unit="€"
                             precision={0}
                           />
                           <DetailItem
                             label="CAPEX (Power)"
                             value={displayData.capex_power}
-                            unit="$/kW"
+                            unit="€/kW"
                             precision={0}
                           />
                           {isBessProject && (
                             <DetailItem
                               label="CAPEX (Energy)"
                               value={displayData.capex_energy}
-                              unit="$/kWh"
+                              unit="€/kWh"
                               precision={0}
                             />
                           )}
@@ -865,19 +865,19 @@ const ProjectOverview = () => {
                         <>
                           {opexInputMode === "total" ? (
                             <InputItem
-                              label="Total OPEX (Yearly, $/yr)"
+                              label="Total OPEX (Yearly, €/yr)"
                               id="opex-yr"
                               type="number"
                               value={displayData.opex_yr}
                               onChange={(v) => handleFieldChange("opex_yr", v)}
                               precision={0}
-                              unit="$/yr"
+                              unit="€/yr"
                               className="sm:col-span-2"
                             />
                           ) : (
                             <>
                               <InputItem
-                                label="OPEX (Power / Year, $/kW/yr)"
+                                label="OPEX (Power / Year, €/kW/yr)"
                                 id="opex-pwr-yr"
                                 type="number"
                                 value={displayData.opex_power_yr}
@@ -885,11 +885,11 @@ const ProjectOverview = () => {
                                   handleFieldChange("opex_power_yr", v)
                                 }
                                 precision={0}
-                                unit="$/kW/yr"
+                                unit="€/kW/yr"
                               />
                               {isBessProject && (
                                 <InputItem
-                                  label="OPEX (Energy / Year, $/kWh/yr)"
+                                  label="OPEX (Energy / Year, €/kWh/yr)"
                                   id="opex-en-yr"
                                   type="number"
                                   value={displayData.opex_energy_yr}
@@ -897,7 +897,7 @@ const ProjectOverview = () => {
                                     handleFieldChange("opex_energy_yr", v)
                                   }
                                   precision={0}
-                                  unit="$/kWh/yr"
+                                  unit="€/kWh/yr"
                                 />
                               )}
                             </>
@@ -908,20 +908,20 @@ const ProjectOverview = () => {
                           <DetailItem
                             label="Total OPEX (Yearly)"
                             value={displayData.opex_yr}
-                            unit="$/yr"
+                            unit="€/yr"
                             precision={0}
                           />
                           <DetailItem
                             label="OPEX (Power / Year)"
                             value={displayData.opex_power_yr}
-                            unit="$/kW/yr"
+                            unit="€/kW/yr"
                             precision={0}
                           />
                           {isBessProject && (
                             <DetailItem
                               label="OPEX (Energy / Year)"
                               value={displayData.opex_energy_yr}
-                              unit="$/kWh/yr"
+                              unit="€/kWh/yr"
                               precision={0}
                             />
                           )}

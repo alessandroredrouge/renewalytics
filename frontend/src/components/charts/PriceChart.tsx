@@ -354,7 +354,7 @@ const PriceChart: React.FC<PriceChartProps> = ({ data, isLoading, error }) => {
             tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
             stroke="hsl(var(--border))"
             tickFormatter={(value) =>
-              typeof value === "number" ? `$${value.toFixed(0)}` : value
+              typeof value === "number" ? `€${value.toFixed(0)}` : value
             }
             domain={yAxisDomain ? yAxisDomain : ["dataMin", "dataMax"]}
             allowDataOverflow={true}

@@ -664,16 +664,16 @@ const RevenueStreams = () => {
                               Data Source
                             </TableHead>
                             <TableHead className="w-[120px] text-right">
-                              Min Price ($)
+                              Min Price (€)
                             </TableHead>
                             <TableHead className="w-[120px] text-right">
-                              Avg Price ($)
+                              Avg Price (€)
                             </TableHead>
                             <TableHead className="w-[120px] text-right">
-                              Max Price ($)
+                              Max Price (€)
                             </TableHead>
                             <TableHead className="w-[120px] text-right">
-                              StdDev ($)
+                              StdDev (€)
                             </TableHead>
                             <TableHead className="w-[130px]">
                               Granularity
