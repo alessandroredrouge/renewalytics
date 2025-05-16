@@ -62,6 +62,46 @@ const formatValue = (
   return String(value);
 };
 
+interface DisplayCostProps {
+  value: number | null;
+  unit: string;
+  precision: number;
+}
+
+const getDisplayCostProps = (
+  originalValue: number | null,
+  originalUnit: string,
+  costDisplayUnit: "EUR" | "MEUR",
+  defaultPrecision: number = 0
+): DisplayCostProps => {
+  if (originalValue === null || typeof originalValue === "undefined") {
+    return { value: null, unit: originalUnit, precision: defaultPrecision };
+  }
+
+  if (costDisplayUnit === "MEUR") {
+    if (originalUnit === "€") {
+      return {
+        value: originalValue / 1000000,
+        unit: "M€",
+        precision: 3, // Or adjust as needed
+      };
+    }
+    if (originalUnit === "€/yr") {
+      return {
+        value: originalValue / 1000000,
+        unit: "M€/yr",
+        precision: 3, // Or adjust as needed
+      };
+    }
+  }
+  // Default to EUR or if unit is not € or €/yr
+  return {
+    value: originalValue,
+    unit: originalUnit,
+    precision: defaultPrecision,
+  };
+};
+
 const DetailItem: React.FC<{
   label: string;
   value: any;
@@ -142,6 +182,7 @@ const ProjectOverview = () => {
   const [opexInputMode, setOpexInputMode] = useState<"total" | "specific">(
     "total"
   );
+  const [costDisplayUnit, setCostDisplayUnit] = useState<"EUR" | "MEUR">("EUR");
 
   // State for country and market options
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
@@ -265,7 +306,7 @@ const ProjectOverview = () => {
     updateProjectField("discharging_efficiency", 90); // %
     updateProjectField("max_soc", 95); // %
     updateProjectField("min_soc", 5); // %
-    updateProjectField("technology", "Advanced Li-Ion (Test)");
+    updateProjectField("technology", "Li-ion");
     updateProjectField("calendar_lifetime", 15); // Years
     updateProjectField("cycling_lifetime", 6000); // Cycles
 
@@ -789,11 +830,36 @@ const ProjectOverview = () => {
             </Card>
 
             <Card>
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-2 flex flex-row justify-between items-center">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-energy-blue" />
                   Cost Parameters
                 </CardTitle>
+                {!isEditing && (
+                  <div>
+                    <ToggleGroup
+                      type="single"
+                      value={costDisplayUnit}
+                      onValueChange={(value) => {
+                        if (value === "EUR" || value === "MEUR") {
+                          setCostDisplayUnit(value);
+                        }
+                      }}
+                      className="border rounded-md"
+                      size="sm"
+                    >
+                      <ToggleGroupItem value="EUR" className="text-xs px-2 h-7">
+                        €
+                      </ToggleGroupItem>
+                      <ToggleGroupItem
+                        value="MEUR"
+                        className="text-xs px-2 h-7"
+                      >
+                        M€
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
@@ -876,9 +942,12 @@ const ProjectOverview = () => {
                         <>
                           <DetailItem
                             label="Total CAPEX"
-                            value={displayData.capex_tot}
-                            unit="€"
-                            precision={0}
+                            {...getDisplayCostProps(
+                              displayData.capex_tot,
+                              "€",
+                              costDisplayUnit,
+                              0
+                            )}
                           />
                           <DetailItem
                             label="CAPEX (Power)"
@@ -978,9 +1047,12 @@ const ProjectOverview = () => {
                         <>
                           <DetailItem
                             label="Total OPEX (Yearly)"
-                            value={displayData.opex_yr}
-                            unit="€/yr"
-                            precision={0}
+                            {...getDisplayCostProps(
+                              displayData.opex_yr,
+                              "€/yr",
+                              costDisplayUnit,
+                              0
+                            )}
                           />
                           <DetailItem
                             label="OPEX (Power / Year)"
