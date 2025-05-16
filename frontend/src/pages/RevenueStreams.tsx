@@ -561,7 +561,7 @@ const RevenueStreams = () => {
                 className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 flex-shrink-0"
               >
                 <BarChart3 className="mr-2 h-4 w-4" />
-                Revenue Streams Overview
+                Overview
               </TabsTrigger>
 
               {selectedRevenueStreams.map((stream) => (
@@ -648,73 +648,89 @@ const RevenueStreams = () => {
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
-
-                  <div>
+                  {/* TODO: Add back in when we will set up the calculations */}
+                  {/* <div>
                     <h3 className="text-lg font-medium mb-3">
                       Data Characteristics
                     </h3>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[200px]">
-                            Revenue Stream
-                          </TableHead>
-                          <TableHead>Data Source</TableHead>
-                          <TableHead className="text-right">
-                            Min Price ($)
-                          </TableHead>
-                          <TableHead className="text-right">
-                            Avg Price ($)
-                          </TableHead>
-                          <TableHead className="text-right">
-                            Max Price ($)
-                          </TableHead>
-                          <TableHead className="text-right">
-                            StdDev ($)
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {selectedRevenueStreams.length > 0 ? (
-                          selectedRevenueStreams.map((streamName) => (
-                            <TableRow key={streamName}>
-                              <TableCell className="font-medium">
-                                {streamName}
-                              </TableCell>
-                              <TableCell>
-                                {projectData?.revenueStreamSettings?.[
-                                  streamName
-                                ]?.dataSourceType === "supabase" && (
-                                  <Database className="inline mr-1.5 h-4 w-4 text-muted-foreground" />
-                                )}
-                                {projectData?.revenueStreamSettings?.[
-                                  streamName
-                                ]?.dataSourceType === "csv" && (
-                                  <UploadCloud className="inline mr-1.5 h-4 w-4 text-muted-foreground" />
-                                )}
-                                {projectData?.revenueStreamSettings?.[
-                                  streamName
-                                ]?.dataSourceType?.toUpperCase() || "N/A"}
-                              </TableCell>
-                              <TableCell className="text-right">-</TableCell>
-                              <TableCell className="text-right">-</TableCell>
-                              <TableCell className="text-right">-</TableCell>
-                              <TableCell className="text-right">-</TableCell>
-                            </TableRow>
-                          ))
-                        ) : (
+                    <div className="overflow-x-auto rounded-md border">
+                      <Table>
+                        <TableHeader>
                           <TableRow>
-                            <TableCell
-                              colSpan={6}
-                              className="text-center text-muted-foreground"
-                            >
-                              No revenue streams selected.
-                            </TableCell>
+                            <TableHead className="w-[200px] sticky left-0 z-10 bg-card">
+                              Revenue Stream
+                            </TableHead>
+                            <TableHead className="w-[150px]">
+                              Data Source
+                            </TableHead>
+                            <TableHead className="w-[120px] text-right">
+                              Min Price ($)
+                            </TableHead>
+                            <TableHead className="w-[120px] text-right">
+                              Avg Price ($)
+                            </TableHead>
+                            <TableHead className="w-[120px] text-right">
+                              Max Price ($)
+                            </TableHead>
+                            <TableHead className="w-[120px] text-right">
+                              StdDev ($)
+                            </TableHead>
+                            <TableHead className="w-[130px]">
+                              Granularity
+                            </TableHead>
+                            <TableHead className="w-[180px]">
+                              Earliest Date
+                            </TableHead>
+                            <TableHead className="w-[180px]">
+                              Latest Date
+                            </TableHead>
                           </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </TableHeader>
+                        <TableBody>
+                          {selectedRevenueStreams.length > 0 ? (
+                            selectedRevenueStreams.map((streamName) => (
+                              <TableRow key={streamName}>
+                                <TableCell className="font-medium sticky left-0 z-10 bg-card">
+                                  {streamName}
+                                </TableCell>
+                                <TableCell>
+                                  {projectData?.revenueStreamSettings?.[
+                                    streamName
+                                  ]?.dataSourceType === "supabase" && (
+                                    <Database className="inline mr-1.5 h-4 w-4 text-muted-foreground" />
+                                  )}
+                                  {projectData?.revenueStreamSettings?.[
+                                    streamName
+                                  ]?.dataSourceType === "csv" && (
+                                    <UploadCloud className="inline mr-1.5 h-4 w-4 text-muted-foreground" />
+                                  )}
+                                  {projectData?.revenueStreamSettings?.[
+                                    streamName
+                                  ]?.dataSourceType?.toUpperCase() || "N/A"}
+                                </TableCell>
+                                <TableCell className="text-right">-</TableCell>
+                                <TableCell className="text-right">-</TableCell>
+                                <TableCell className="text-right">-</TableCell>
+                                <TableCell className="text-right">-</TableCell>
+                                <TableCell>-</TableCell>
+                                <TableCell>-</TableCell>
+                                <TableCell>-</TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell
+                                colSpan={9}
+                                className="text-center text-muted-foreground"
+                              >
+                                No revenue streams selected.
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div> */}
                 </CardContent>
               </Card>
             </TabsContent>
