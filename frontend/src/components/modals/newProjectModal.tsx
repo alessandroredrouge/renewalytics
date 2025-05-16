@@ -202,14 +202,19 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({
                   />
                   <Label htmlFor="type-bess">BESS</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div
+                  className="flex items-center space-x-2"
+                  title="Coming soon"
+                >
                   <Checkbox
                     id="type-pv"
                     checked={isPv}
                     onCheckedChange={(checked) => setIsPv(!!checked)}
-                    disabled={isSubmitting}
+                    disabled={true} // Always disabled
                   />
-                  <Label htmlFor="type-pv">PV</Label>
+                  <Label htmlFor="type-pv" className="text-muted-foreground">
+                    PV
+                  </Label>
                 </div>
               </div>
             </fieldset>

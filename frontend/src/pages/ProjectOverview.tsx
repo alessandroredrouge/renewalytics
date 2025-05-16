@@ -419,15 +419,22 @@ const ProjectOverview = () => {
                     BESS
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div
+                  className="flex items-center space-x-2"
+                  title="Coming soon"
+                >
                   <Checkbox
                     id="type-pv"
                     checked={displayData.type_of_plant?.includes("PV")}
                     onCheckedChange={(checked) =>
                       handleProjectTypeChange("PV", checked)
                     }
+                    disabled={true}
                   />
-                  <Label htmlFor="type-pv" className="text-sm font-medium">
+                  <Label
+                    htmlFor="type-pv"
+                    className="text-sm font-medium text-muted-foreground"
+                  >
                     PV
                   </Label>
                 </div>

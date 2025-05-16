@@ -40,11 +40,11 @@ const AppSidebar = () => {
       icon: FolderGit2,
       path: "/pipeline",
     },
-    {
-      title: "Settings",
-      icon: Settings,
-      path: "/settings",
-    },
+    // {
+    //   title: "Settings",
+    //   icon: Settings,
+    //   path: "/settings",
+    // },
   ];
 
   const projectMenuItems = [
