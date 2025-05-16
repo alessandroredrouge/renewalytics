@@ -46,6 +46,22 @@ export interface ProjectData {
   opex_yr?: number | null;
   revenue_streams?: string[] | null;
   created_at: string; // Assuming string from JSON
+  revenueStreamSettings?: {
+    [streamName: string]: RevenueStreamSetting;
+  } | null; // Allow null
+}
+
+// Interface for individual revenue stream settings (matches context)
+export interface RevenueStreamSetting {
+  dataSourceType?: "supabase" | "csv" | null;
+  visualizedYear?: number | null;
+  visualizedWeek?: number | null;
+}
+
+// Interface for the data structure returned by the new prices endpoint
+export interface PriceDataPoint {
+  datetime: string; // Received as string from JSON
+  price: number;
 }
 
 // Interface for data needed by the createProject function, matching modal's output
@@ -417,5 +433,53 @@ export const getMarketOptions = async (): Promise<MarketOptionsData> => {
   } catch (error) {
     console.error("Failed to fetch market options:", error);
     throw error;
+  }
+};
+
+/**
+ * Fetches weekly price data for a specific market and time range.
+ * @param country The country name.
+ * @param market The market/revenue stream name.
+ * @param year The target year.
+ * @param week The target ISO week number.
+ * @returns A promise that resolves to an array of PriceDataPoint objects.
+ * @throws An error if the network response is not ok.
+ */
+export const getWeeklyPriceData = async (
+  country: string,
+  market: string,
+  year: number,
+  week: number
+): Promise<PriceDataPoint[]> => {
+  if (!country || !market || !year || !week) {
+    console.warn("getWeeklyPriceData called with missing parameters");
+    return [];
+  }
+
+  const url = new URL(`${API_BASE_URL}/prices/weekly`);
+  url.searchParams.append("country", country);
+  url.searchParams.append("market", market);
+  url.searchParams.append("year", year.toString());
+  url.searchParams.append("week", week.toString());
+
+  try {
+    const response = await fetch(url.toString());
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData?.detail || `HTTP error! status: ${response.status}`;
+      console.error("Error fetching weekly price data:", errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    const data: PriceDataPoint[] = await response.json();
+    console.log(
+      `Fetched ${data.length} price points for ${country}/${market} week ${year}-${week}`
+    ); // For debugging
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch weekly price data:", error);
+    throw error; // Re-throw so the component can handle it
   }
 };

@@ -3,6 +3,7 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 from postgrest import APIResponse
 import logging
+from datetime import datetime, timedelta, timezone
 
 # Load environment variables from .env file
 load_dotenv()
@@ -224,3 +225,59 @@ async def count_pipelines(client: Client) -> int:
     except Exception as e:
         logger.error(f"An unexpected error occurred during pipeline count: {e}", exc_info=True)
         raise
+
+async def fetch_weekly_price_data(
+    client: Client,
+    country: str,
+    market: str,
+    year: int,
+    week: int
+) -> list[dict]:
+    """Fetches price data for a specific country, market, year, and ISO week."""
+    if not all([country, market, year, week]):
+        logger.warning("fetch_weekly_price_data called with missing parameters.")
+        return []
+
+    try:
+        # Calculate start and end date of the ISO week
+        # ISO weeks start on Monday. isocalendar() returns (year, week, weekday)
+        # Find the first day of the given year
+        first_day_of_year = datetime(year, 1, 1, tzinfo=timezone.utc)
+        
+        # Calculate the date of the Monday of week 1
+        if first_day_of_year.isocalendar()[2] > 4: # If Jan 1st is Fri, Sat, Sun, week 1 starts later
+            first_monday_of_year = first_day_of_year + timedelta(days=(8 - first_day_of_year.isocalendar()[2]))
+        else:
+            first_monday_of_year = first_day_of_year - timedelta(days=(first_day_of_year.isocalendar()[2] - 1))
+            
+        # Calculate the start date (Monday of the target week)
+        start_date = first_monday_of_year + timedelta(weeks=week - 1)
+        end_date = start_date + timedelta(days=7) # End date is exclusive in range query
+
+        start_date_str = start_date.strftime('%Y-%m-%d %H:%M:%S%z')
+        end_date_str = end_date.strftime('%Y-%m-%d %H:%M:%S%z')
+        
+        logger.info(f"Querying prices for {country}/{market}, Year: {year}, Week: {week} ({start_date_str} to {end_date_str})")
+
+        response: APIResponse = client.table('energy_prices') \
+                                     .select('datetime, price') \
+                                     .eq('country', country) \
+                                     .eq('market', market) \
+                                     .gte('datetime', start_date_str) \
+                                     .lt('datetime', end_date_str) \
+                                     .order('datetime', desc=False) \
+                                     .execute()
+
+        if not response.data:
+            if hasattr(response, 'error') and response.error:
+                 logger.error(f"Error fetching price data for {country}/{market} week {year}-{week}: {response.error}")
+                 return []
+            logger.info(f"No price data found for {country}/{market} week {year}-{week}.")
+            return [] # No data found
+
+        logger.info(f"Successfully fetched {len(response.data)} price points for {country}/{market} week {year}-{week}.")
+        return response.data
+    except Exception as e:
+        logger.error(f"An unexpected error occurred fetching price data: {e}", exc_info=True)
+        # Depending on requirements, might want to raise or return empty
+        raise # Re-raise for the endpoint to handle

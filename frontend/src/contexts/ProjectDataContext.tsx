@@ -9,10 +9,19 @@ import React, {
 } from "react";
 import { ProjectData } from "@/lib/apiClient"; // Assuming ProjectData interface is here
 
+// Define the structure for individual revenue stream settings
+export interface RevenueStreamSetting {
+  dataSourceType?: "supabase" | "csv" | null;
+  visualizedYear?: number | null;
+  visualizedWeek?: number | null;
+  // Add more settings specific to a stream as needed
+}
+
 // Define the shape of the project data state, potentially extending ProjectData
-// For now, let's assume it directly uses ProjectData, but we can add more fields later
-// (e.g., for unsaved financial inputs, dispatch settings, simulation results)
 export type ActiveProjectState = ProjectData & {
+  revenueStreamSettings?: {
+    [streamName: string]: RevenueStreamSetting;
+  };
   // Add placeholders for data not directly in the 'projects' table yet
   // financialInputs?: Record<string, any>;
   // dispatchSettings?: Record<string, any>;
@@ -27,6 +36,12 @@ interface ProjectDataContextProps {
     field: K,
     value: ActiveProjectState[K]
   ) => void; // Function to update a single field
+  // Add a dedicated function for updating nested stream settings for clarity
+  updateRevenueStreamSetting: (
+    streamName: string,
+    settingKey: keyof RevenueStreamSetting,
+    value: RevenueStreamSetting[keyof RevenueStreamSetting]
+  ) => void;
   isSaved: boolean;
   markAsSaved: () => void;
   markAsUnsaved: () => void; // Can be called implicitly by updateProjectField
@@ -56,20 +71,58 @@ export const ProjectDataProvider: React.FC<{ children: ReactNode }> = ({
     // e.g., setHasUnsavedResults(false);
   }, []);
 
-  // Function to update a specific field and mark as unsaved
+  // Function to update a top-level specific field and mark as unsaved
   const updateProjectField = useCallback(
     <K extends keyof ActiveProjectState>(
       field: K,
       value: ActiveProjectState[K]
     ) => {
+      // Prevent direct update of revenueStreamSettings here if using dedicated function
+      if (field === "revenueStreamSettings") {
+        console.warn(
+          "Use updateRevenueStreamSetting for modifying stream settings."
+        );
+        return;
+      }
       setProjectDataState((prevData) => {
-        if (!prevData) return null; // Should not happen if editing
-        // Create a new object to ensure state update immutability
+        if (!prevData) return null;
         const newData = { ...prevData, [field]: value };
-        // console.log("Updating field:", field, "Value:", value, "New Data:", newData); // Debugging
         return newData;
       });
       setIsSaved(false);
+    },
+    []
+  );
+
+  // Dedicated function to update a specific setting for a specific revenue stream
+  const updateRevenueStreamSetting = useCallback(
+    <K extends keyof RevenueStreamSetting>(
+      streamName: string,
+      settingKey: K,
+      value: RevenueStreamSetting[K] // Use generic K for type safety
+    ) => {
+      setProjectDataState((prevData) => {
+        if (!prevData) return null;
+
+        // Ensure immutability
+        const newSettings = { ...(prevData.revenueStreamSettings || {}) };
+        // Ensure the specific stream's settings object exists
+        const currentStreamSettings = {
+          ...(newSettings[streamName] || ({} as RevenueStreamSetting)),
+        }; // Add type assertion
+
+        // Update the specific setting - types should now match
+        currentStreamSettings[settingKey] = value;
+
+        newSettings[streamName] = currentStreamSettings;
+
+        const newData = {
+          ...prevData,
+          revenueStreamSettings: newSettings,
+        };
+        return newData;
+      });
+      setIsSaved(false); // Mark changes as unsaved
     },
     []
   );
@@ -94,6 +147,7 @@ export const ProjectDataProvider: React.FC<{ children: ReactNode }> = ({
         projectData,
         setProjectData,
         updateProjectField,
+        updateRevenueStreamSetting, // Provide the new function
         isSaved,
         markAsSaved,
         markAsUnsaved,
