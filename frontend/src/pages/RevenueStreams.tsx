@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useProjectData } from "@/contexts/ProjectDataContext";
-import { getMarketsByCountry, getWeeklyPriceData } from "@/lib/apiClient";
+import {
+  getMarketsByCountry,
+  getWeeklyPriceData,
+  PriceDataPoint,
+} from "@/lib/apiClient";
 import {
   Card,
   CardContent,
@@ -51,11 +55,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface PriceDataPoint {
-  datetime: string;
-  price: number;
-}
+import PriceChart, { MultiStreamData } from "@/components/charts/PriceChart";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const getRevenueStreamIcon = (streamName: string) => {
   const lowerCaseName = streamName.toLowerCase();
@@ -101,6 +109,12 @@ const RevenueStreams = () => {
   const [activePriceData, setActivePriceData] = useState<PriceDataPoint[]>([]);
   const [isLoadingPriceData, setIsLoadingPriceData] = useState(false);
   const [errorLoadingPriceData, setErrorLoadingPriceData] = useState<
+    string | null
+  >(null);
+
+  const [summaryChartData, setSummaryChartData] = useState<MultiStreamData>({});
+  const [isLoadingSummaryData, setIsLoadingSummaryData] = useState(false);
+  const [errorLoadingSummaryData, setErrorLoadingSummaryData] = useState<
     string | null
   >(null);
 
@@ -202,6 +216,85 @@ const RevenueStreams = () => {
     visualizedWeek,
   ]);
 
+  useEffect(() => {
+    if (
+      activeTabStream !== "summary" ||
+      !projectData?.country ||
+      selectedRevenueStreams.length === 0
+    ) {
+      // Clear summary data if summary tab is not active or no streams
+      // setSummaryChartData({}); // Optional: Decide if you want to clear or keep stale data
+      return;
+    }
+
+    const fetchAllStreamsData = async () => {
+      setIsLoadingSummaryData(true);
+      setErrorLoadingSummaryData(null);
+      const newSummaryData: MultiStreamData = {};
+      let anErrorOccurredDuringFetch = false;
+
+      // Initialize all selected streams with empty data arrays in newSummaryData
+      // This ensures PriceChart knows about all streams for the legend.
+      for (const streamName of selectedRevenueStreams) {
+        newSummaryData[streamName] = [];
+      }
+
+      const fetchPromises = selectedRevenueStreams.map(async (streamName) => {
+        const settings = projectData?.revenueStreamSettings?.[streamName];
+        if (settings?.dataSourceType === "supabase") {
+          try {
+            console.log(
+              `SUMMARY: Fetching ${projectData.country}/${streamName} for Y:${visualizedYear} W:${visualizedWeek}`
+            );
+            const data = await getWeeklyPriceData(
+              projectData.country!,
+              streamName,
+              visualizedYear,
+              visualizedWeek
+            );
+            newSummaryData[streamName] = data; // Overwrite with fetched data
+          } catch (error: any) {
+            console.error(
+              `Error fetching data for ${streamName} in summary:`,
+              error
+            );
+            anErrorOccurredDuringFetch = true;
+            // newSummaryData[streamName] remains [] due to initialization
+          }
+        }
+        // If not 'supabase', newSummaryData[streamName] remains [] from initialization
+      });
+
+      try {
+        await Promise.all(fetchPromises);
+      } catch (error) {
+        // Should not happen if individual errors in map are caught, but as a safeguard
+        console.error(
+          "An unexpected error occurred during Promise.all for summary data:",
+          error
+        );
+        anErrorOccurredDuringFetch = true;
+      }
+
+      setSummaryChartData(newSummaryData);
+      if (anErrorOccurredDuringFetch) {
+        setErrorLoadingSummaryData(
+          "Error fetching price data for one or more streams. Some data may be incomplete. Check console for details."
+        );
+      }
+      setIsLoadingSummaryData(false);
+    };
+
+    fetchAllStreamsData();
+  }, [
+    activeTabStream,
+    projectData?.country,
+    selectedRevenueStreams,
+    projectData?.revenueStreamSettings,
+    visualizedYear,
+    visualizedWeek,
+  ]);
+
   const handleMarketSelectionChange = useCallback(
     (market: string, checked: boolean) => {
       setTemporarySelectedStreams((prev) => {
@@ -276,8 +369,10 @@ const RevenueStreams = () => {
   };
 
   useEffect(() => {
-    setActiveTabStream(defaultTabValue);
-  }, [defaultTabValue]);
+    if (!activeTabStream && defaultTabValue) {
+      setActiveTabStream(defaultTabValue);
+    }
+  }, [defaultTabValue, activeTabStream]);
 
   if (!projectData) {
     return (
@@ -378,10 +473,9 @@ const RevenueStreams = () => {
                 <div className="grid gap-4">
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">
-                    Choose the plant's revenue streams in{" "}
-                    {projectData?.country || "selected country"}.
+                      Choose the plant's revenue streams in{" "}
+                      {projectData?.country || "selected country"}.
                     </p>
-                    
                   </div>
                   {isLoadingMarkets ? (
                     <div className="flex items-center justify-center p-4">
@@ -467,7 +561,7 @@ const RevenueStreams = () => {
                 className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 flex-shrink-0"
               >
                 <BarChart3 className="mr-2 h-4 w-4" />
-                Revenue Summary
+                Revenue Streams Overview
               </TabsTrigger>
 
               {selectedRevenueStreams.map((stream) => (
@@ -483,215 +577,308 @@ const RevenueStreams = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <BarChart3 className="mr-2 h-5 w-5 text-energy-blue" />
-                    Revenue Summary
+                    Revenue Streams Overview
                   </CardTitle>
                   <CardDescription>
-                    Projected annual revenue breakdown across all configured
-                    revenue streams
+                    Combined price data visualization and characteristics of
+                    selected revenue streams.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-80 w-full bg-muted/50 rounded-md flex items-center justify-center mb-6">
-                    <div className="text-center px-4">
-                      <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground/70" />
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Revenue summary chart will appear here (Data is
-                        currently static)
-                      </p>
-                    </div>
+                <CardContent className="space-y-6">
+                  <div className="h-96 w-full bg-muted/10 rounded-md border">
+                    <PriceChart
+                      data={summaryChartData}
+                      isLoading={isLoadingSummaryData}
+                      error={errorLoadingSummaryData}
+                    />
                   </div>
 
-                  <div className="space-y-4">
-                    <h3 className="font-medium">
-                      Annual Revenue Breakdown (Static Example)
-                    </h3>
-                    <div className="p-4 border rounded-md text-sm text-muted-foreground">
-                      Revenue breakdown table will be generated here based on
-                      configured streams.
+                  <div className="flex items-center justify-center gap-3 p-3 border rounded-md bg-background">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={goToPreviousWeek}
+                      aria-label="Previous Week"
+                      disabled={isLoadingSummaryData}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={visualizedYear.toString()}
+                        onValueChange={handleYearChange}
+                        disabled={isLoadingSummaryData}
+                      >
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue placeholder="Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {yearOptions.map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={visualizedWeek.toString()}
+                        onValueChange={handleWeekChange}
+                        disabled={isLoadingSummaryData}
+                      >
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue placeholder="Week" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[200px]">
+                          {weekOptions.map((week) => (
+                            <SelectItem
+                              key={week}
+                              value={week.toString()}
+                            >{`Week ${week}`}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={goToNextWeek}
+                      aria-label="Next Week"
+                      disabled={isLoadingSummaryData}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-medium mb-3">
+                      Data Characteristics
+                    </h3>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[200px]">
+                            Revenue Stream
+                          </TableHead>
+                          <TableHead>Data Source</TableHead>
+                          <TableHead className="text-right">
+                            Min Price ($)
+                          </TableHead>
+                          <TableHead className="text-right">
+                            Avg Price ($)
+                          </TableHead>
+                          <TableHead className="text-right">
+                            Max Price ($)
+                          </TableHead>
+                          <TableHead className="text-right">
+                            StdDev ($)
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedRevenueStreams.length > 0 ? (
+                          selectedRevenueStreams.map((streamName) => (
+                            <TableRow key={streamName}>
+                              <TableCell className="font-medium">
+                                {streamName}
+                              </TableCell>
+                              <TableCell>
+                                {projectData?.revenueStreamSettings?.[
+                                  streamName
+                                ]?.dataSourceType === "supabase" && (
+                                  <Database className="inline mr-1.5 h-4 w-4 text-muted-foreground" />
+                                )}
+                                {projectData?.revenueStreamSettings?.[
+                                  streamName
+                                ]?.dataSourceType === "csv" && (
+                                  <UploadCloud className="inline mr-1.5 h-4 w-4 text-muted-foreground" />
+                                )}
+                                {projectData?.revenueStreamSettings?.[
+                                  streamName
+                                ]?.dataSourceType?.toUpperCase() || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-right">-</TableCell>
+                              <TableCell className="text-right">-</TableCell>
+                              <TableCell className="text-right">-</TableCell>
+                              <TableCell className="text-right">-</TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell
+                              colSpan={6}
+                              className="text-center text-muted-foreground"
+                            >
+                              No revenue streams selected.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {selectedRevenueStreams.map((stream) => (
-              <TabsContent key={stream} value={stream} className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      {getRevenueStreamIcon(stream)}
-                      {stream}
-                    </CardTitle>
-                    <CardDescription>
-                      Configure parameters and analyze data for the {stream}{" "}
-                      revenue stream.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-3">
-                      <Label className="text-base font-medium">
-                        Price Data Source
-                      </Label>
-                      <RadioGroup
-                        value={
-                          projectData?.revenueStreamSettings?.[stream]
-                            ?.dataSourceType ?? undefined
-                        }
-                        onValueChange={(value: "supabase" | "csv") =>
-                          handleDataSourceChange(stream, value)
-                        }
-                        className="flex items-center gap-6"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem
-                            value="supabase"
-                            id={`${stream}-supabase`}
-                          />
-                          <Label
-                            htmlFor={`${stream}-supabase`}
-                            className="cursor-pointer flex items-center gap-2"
-                          >
-                            <Database size={16} /> Platform Data (Supabase)
+            {selectedRevenueStreams.map(
+              (stream) =>
+                stream !== "summary" && (
+                  <TabsContent
+                    key={stream}
+                    value={stream}
+                    className="space-y-6"
+                  >
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          {getRevenueStreamIcon(stream)}
+                          {stream}
+                        </CardTitle>
+                        <CardDescription>
+                          Configure parameters and analyze data for the {stream}{" "}
+                          revenue stream.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="space-y-3">
+                          <Label className="text-base font-medium">
+                            Price Data Source
                           </Label>
+                          <RadioGroup
+                            value={
+                              projectData?.revenueStreamSettings?.[stream]
+                                ?.dataSourceType ?? undefined
+                            }
+                            onValueChange={(value: "supabase" | "csv") =>
+                              handleDataSourceChange(stream, value)
+                            }
+                            className="flex items-center gap-6"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem
+                                value="supabase"
+                                id={`${stream}-supabase`}
+                              />
+                              <Label
+                                htmlFor={`${stream}-supabase`}
+                                className="cursor-pointer flex items-center gap-2"
+                              >
+                                <Database size={16} /> Platform Data (Supabase)
+                              </Label>
+                            </div>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span tabIndex={0}>
+                                    <div className="flex items-center space-x-2 opacity-50 cursor-not-allowed">
+                                      <RadioGroupItem
+                                        value="csv"
+                                        id={`${stream}-csv`}
+                                        disabled
+                                      />
+                                      <Label
+                                        htmlFor={`${stream}-csv`}
+                                        className="cursor-not-allowed flex items-center gap-2"
+                                      >
+                                        <UploadCloud size={16} /> Upload CSV
+                                      </Label>
+                                    </div>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>CSV upload coming soon!</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </RadioGroup>
                         </div>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span tabIndex={0}>
-                                <div className="flex items-center space-x-2 opacity-50 cursor-not-allowed">
-                                  <RadioGroupItem
-                                    value="csv"
-                                    id={`${stream}-csv`}
-                                    disabled
-                                  />
-                                  <Label
-                                    htmlFor={`${stream}-csv`}
-                                    className="cursor-not-allowed flex items-center gap-2"
-                                  >
-                                    <UploadCloud size={16} /> Upload CSV
-                                  </Label>
-                                </div>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>CSV upload coming soon!</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </RadioGroup>
-                    </div>
 
-                    <div className="mt-6 space-y-4">
-                      <h3 className="text-base font-medium">
-                        Price Data Visualization
-                      </h3>
-                      <div className="h-80 w-full bg-muted/50 rounded-md flex items-center justify-center border">
-                        {isLoadingPriceData ? (
-                          <div className="flex items-center text-muted-foreground">
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            <span>Loading Price Data...</span>
+                        <div className="mt-6 space-y-4">
+                          <h3 className="text-base font-medium">
+                            Price Data Visualization for {stream}
+                          </h3>
+                          <div className="h-80 w-full bg-muted/10 rounded-md border">
+                            <PriceChart
+                              data={
+                                activeTabStream === stream
+                                  ? activePriceData
+                                  : []
+                              }
+                              isLoading={
+                                activeTabStream === stream && isLoadingPriceData
+                              }
+                              error={
+                                activeTabStream === stream
+                                  ? errorLoadingPriceData
+                                  : null
+                              }
+                            />
                           </div>
-                        ) : errorLoadingPriceData ? (
-                          <div className="text-destructive-foreground bg-destructive p-4 rounded-md text-center">
-                            <AlertCircle className="mx-auto h-6 w-6 mb-2" />
-                            <p className="font-medium">Error Loading Data</p>
-                            <p className="text-sm">{errorLoadingPriceData}</p>
-                          </div>
-                        ) : activePriceData.length > 0 ? (
-                          <div className="text-center text-muted-foreground">
-                            <LineChart className="h-12 w-12 mx-auto text-muted-foreground/70 mb-2" />
-                            <p>
-                              Chart Component for {activeTabStream} -{" "}
-                              {activePriceData.length} points
-                            </p>
-                            <p className="text-xs">
-                              (Year: {visualizedYear}, Week: {visualizedWeek})
-                            </p>
-                          </div>
-                        ) : projectData?.revenueStreamSettings?.[stream]
-                            ?.dataSourceType === "supabase" ? (
-                          <div className="text-center text-muted-foreground px-4">
-                            <LineChart className="h-12 w-12 mx-auto text-muted-foreground/70 mb-2" />
-                            <p>
-                              No price data found for Year {visualizedYear},
-                              Week {visualizedWeek}.
-                            </p>
-                            <p className="text-xs">
-                              Select a different period below.
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="text-center text-muted-foreground px-4">
-                            <LineChart className="h-12 w-12 mx-auto text-muted-foreground/70 mb-2" />
-                            <p>
-                              Select 'Platform Data' above and choose a time
-                              period below to view the visualization.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                      {projectData?.revenueStreamSettings?.[stream]
-                        ?.dataSourceType === "supabase" && (
-                        <div className="flex items-center justify-center gap-3 p-3 border rounded-md bg-background">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={goToPreviousWeek}
-                            aria-label="Previous Week"
-                          >
-                            <ChevronLeft className="h-4 w-4" />
-                          </Button>
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={visualizedYear.toString()}
-                              onValueChange={handleYearChange}
-                            >
-                              <SelectTrigger className="w-[100px]">
-                                <SelectValue placeholder="Year" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {yearOptions.map((year) => (
-                                  <SelectItem
-                                    key={year}
-                                    value={year.toString()}
-                                  >
-                                    {year}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <Select
-                              value={visualizedWeek.toString()}
-                              onValueChange={handleWeekChange}
-                            >
-                              <SelectTrigger className="w-[100px]">
-                                <SelectValue placeholder="Week" />
-                              </SelectTrigger>
-                              <SelectContent className="max-h-[200px]">
-                                {weekOptions.map((week) => (
-                                  <SelectItem
-                                    key={week}
-                                    value={week.toString()}
-                                  >{`Week ${week}`}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={goToNextWeek}
-                            aria-label="Next Week"
-                          >
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
+                          {activeTabStream === stream && (
+                            <div className="flex items-center justify-center gap-3 p-3 mt-4 border rounded-md bg-background">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={goToPreviousWeek}
+                                aria-label="Previous Week"
+                                disabled={isLoadingPriceData}
+                              >
+                                <ChevronLeft className="h-4 w-4" />
+                              </Button>
+                              <div className="flex items-center gap-2">
+                                <Select
+                                  value={visualizedYear.toString()}
+                                  onValueChange={handleYearChange}
+                                  disabled={isLoadingPriceData}
+                                >
+                                  <SelectTrigger className="w-[100px]">
+                                    <SelectValue placeholder="Year" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {yearOptions.map((year) => (
+                                      <SelectItem
+                                        key={year}
+                                        value={year.toString()}
+                                      >
+                                        {year}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Select
+                                  value={visualizedWeek.toString()}
+                                  onValueChange={handleWeekChange}
+                                  disabled={isLoadingPriceData}
+                                >
+                                  <SelectTrigger className="w-[100px]">
+                                    <SelectValue placeholder="Week" />
+                                  </SelectTrigger>
+                                  <SelectContent className="max-h-[200px]">
+                                    {weekOptions.map((week) => (
+                                      <SelectItem
+                                        key={week}
+                                        value={week.toString()}
+                                      >{`Week ${week}`}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={goToNextWeek}
+                                aria-label="Next Week"
+                                disabled={isLoadingPriceData}
+                              >
+                                <ChevronRight className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            ))}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                )
+            )}
           </Tabs>
         )}
       </div>
