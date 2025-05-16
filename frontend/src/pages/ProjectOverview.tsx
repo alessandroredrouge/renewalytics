@@ -8,7 +8,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Edit, CheckCircle, Info } from "lucide-react";
+import { AlertCircle, Edit, CheckCircle, Info, Bot } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -235,6 +235,65 @@ const ProjectOverview = () => {
       }
     }
   }, [projectDataFromContext]);
+
+  const handleAutoCompile = () => {
+    // Set project type to BESS by default for testing most fields
+    const newTypeOfPlant = ["BESS"];
+    updateProjectField("type_of_plant", newTypeOfPlant);
+    updateProjectField("hybrid", newTypeOfPlant.length > 1); // Will be false
+
+    // General Information
+    if (
+      !displayData?.name ||
+      displayData.name === "New Sandbox Project" || // Check against the literal string
+      displayData.name === defaultSandboxData.name // Check against defaultSandboxData property
+    ) {
+      updateProjectField("name", "Auto-Compiled BESS Project");
+    }
+    updateProjectField(
+      "description",
+      "This project has been auto-compiled with sample BESS parameters for testing. System specifications and cost parameters are prefilled. Market information should be configured manually."
+    );
+
+    // System Specifications for BESS
+    // These values will be applied, and the UI will update accordingly on re-render
+    updateProjectField("nominal_power_capacity", 100); // MW
+    updateProjectField("nominal_energy_capacity", 200); // MWh
+    updateProjectField("max_charging_power", 100); // MW
+    updateProjectField("max_discharging_power", 100); // MW
+    updateProjectField("charging_efficiency", 90); // %
+    updateProjectField("discharging_efficiency", 90); // %
+    updateProjectField("max_soc", 95); // %
+    updateProjectField("min_soc", 5); // %
+    updateProjectField("technology", "Advanced Li-Ion (Test)");
+    updateProjectField("calendar_lifetime", 15); // Years
+    updateProjectField("cycling_lifetime", 6000); // Cycles
+
+    // Cost Parameters - respecting current capexInputMode and opexInputMode
+    // CAPEX
+    if (capexInputMode === "total") {
+      updateProjectField("capex_tot", 50000000); // €
+      updateProjectField("capex_power", null); // Clear fields for the other mode
+      updateProjectField("capex_energy", null);
+    } else {
+      // capexInputMode === "specific"
+      updateProjectField("capex_power", 500); // €/kW
+      updateProjectField("capex_energy", 250); // €/kWh (BESS specific)
+      updateProjectField("capex_tot", null); // Clear field for the other mode
+    }
+
+    // OPEX
+    if (opexInputMode === "total") {
+      updateProjectField("opex_yr", 1000000); // €/yr
+      updateProjectField("opex_power_yr", null); // Clear fields for the other mode
+      updateProjectField("opex_energy_yr", null);
+    } else {
+      // opexInputMode === "specific"
+      updateProjectField("opex_power_yr", 20); // €/kW/yr
+      updateProjectField("opex_energy_yr", 10); // €/kWh/yr (BESS specific)
+      updateProjectField("opex_yr", null); // Clear field for the other mode
+    }
+  };
 
   if (!activeProjectId) {
     return (
@@ -475,6 +534,18 @@ const ProjectOverview = () => {
           )}
         </div>
         <div className="flex items-center gap-2 mt-4 md:mt-0 flex-shrink-0">
+          {isEditing && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleAutoCompile}
+              className="mr-2"
+              title="Automatically fill fields with sample data for testing (excluding Market Information)"
+            >
+              <Bot size={16} className="mr-2" />
+              Auto-Compile Test Data
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={handleToggleEdit}>
             {isEditing ? (
               <CheckCircle size={16} className="mr-2" />
