@@ -1,29 +1,87 @@
-# Renewalytics
+# Battery Storage Optimization
 
-## Overview
+This project implements a two-stage optimization for battery storage systems participating in electricity markets:
 
-Renewalytics is a specialized revenue forecasting tool designed for renewable energy projects, starting with standalone Battery Energy Storage Systems (BESS). Its primary goal is to support investment decisions for project developers, independent power producers, utilities, and EPCs by providing techno-economic feasibility studies based on key technical and market data.
+1. Day-ahead bidding for capacity markets (FCR, aFRR, mFRR)
+2. Intraday optimization for wholesale market with remaining capacity
 
-## Product Description
+## Features
 
-Renewalytics offers a suite of integrated modules enabling users to:
+- Day-ahead bidding optimization for capacity markets
+- Intraday optimization for wholesale market
+- Battery state of charge management
+- Revenue maximization across multiple markets
+- Detailed results visualization and analysis
 
-- **Input Project Data:** Enter techno-economic parameters and market data through an intuitive interface.
-- **Define Dispatch Logic:** Configure BESS operational strategies (initially rule-based, later optimizable).
-- **Configure Revenue Streams:** Model and forecast various revenue components based on market and operational data.
-- **Input Financial Details:** Include capital costs, operational costs, and taxation models to simulate project financials.
-- **Run Scenario Analysis:** Compare different dispatch and market scenarios (e.g., high, medium, low) to evaluate impacts on revenue and financial viability (IRR, NPV, PBT).
-- **Visualize Results:** View simulation outputs via dynamic charts and summary tables, illustrating key performance metrics over the project's lifetime.
+## Installation
 
-## Technology Stack
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/battery-storage-optimization.git
+cd battery-storage-optimization
+```
 
-- **Frontend:** React with TypeScript, Vite.js
-- **Backend:** Python with FastAPI
-- **Data Management:** Initial Excel-like interface, planned transition to SQL database and API integrations.
+2. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-## Roadmap
+3. Install dependencies:
+```bash
+cd backend
+pip install -r requirements.txt
+```
 
-- **MVP:** Focus on standalone BESS simulation.
-- **Future Iterations:** Expand to include PV, PV+BESS systems, enhanced multi-user features, API integrations, advanced data inputs, and support for diverse regulatory environments.
+## Usage
 
-This project aims to provide a modern, professional, and extensible platform for renewable energy project analysis.
+1. Run the optimization:
+```bash
+python -m app.main
+```
+
+2. View results:
+- Results are saved in `backend/app/output/revenue_streams.csv`
+- The console output shows detailed optimization results
+
+## Project Structure
+
+```
+backend/
+├── app/
+│   ├── logic/
+│   │   ├── battery_operations.py  # Battery state management
+│   │   ├── market_operations.py   # Market data and operations
+│   │   └── optimization.py        # Optimization algorithms
+│   ├── main.py                    # Main entry point
+│   └── output/                    # Results directory
+├── requirements.txt               # Python dependencies
+└── README.md                     # This file
+```
+
+## Market Participation
+
+The optimization considers participation in the following markets:
+
+1. Frequency Containment Reserve (FCR)
+   - Requires 100% availability
+   - Day-ahead bidding
+   - High acceptance rate
+
+2. Automatic Frequency Restoration Reserve (aFRR)
+   - Requires 50% availability
+   - Day-ahead bidding
+   - Medium acceptance rate
+
+3. Manual Frequency Restoration Reserve (mFRR)
+   - Requires 25% availability
+   - Day-ahead bidding
+   - Low acceptance rate
+
+4. Wholesale Market
+   - Intraday optimization
+   - Uses remaining capacity after capacity market commitments
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details. 
