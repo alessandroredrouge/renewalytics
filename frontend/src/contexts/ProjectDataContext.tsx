@@ -17,13 +17,26 @@ export interface RevenueStreamSetting {
   // Add more settings specific to a stream as needed
 }
 
+// Define the structure for financial inputs collected in Financials.tsx
+export interface FinancialInputSettings {
+  discountRate?: number | null; // WACC (%)
+  salvageValuePercentage?: number | null; // % of Initial CAPEX
+  opexFixedEscalationRate?: number | null; // Annual Fixed OPEX Escalation Rate (%)
+  debtPercentage?: number | null; // % of Initial CAPEX
+  interestRateOnDebt?: number | null; // Annual interest rate (%)
+  debtTermYears?: number | null; // Debt term in years
+  debtUpfrontFeePercentage?: number | null; // % of Total Debt Amount
+  taxRate?: number | null; // Effective corporate tax rate (%)
+  depreciationYears?: number | null; // Effective years for depreciation
+  // additionalCapex?: Array<{ year: number; amount: number; description: string }>; // Moved to scenarios
+}
+
 // Define the shape of the project data state, potentially extending ProjectData
 export type ActiveProjectState = ProjectData & {
   revenueStreamSettings?: {
     [streamName: string]: RevenueStreamSetting;
   };
-  // Add placeholders for data not directly in the 'projects' table yet
-  // financialInputs?: Record<string, any>;
+  financialInputs?: FinancialInputSettings; // Added new financial inputs
   // dispatchSettings?: Record<string, any>;
   // simulationResults?: Record<string, any>;
   // hasUnsavedResults?: boolean;
@@ -42,6 +55,10 @@ interface ProjectDataContextProps {
     settingKey: keyof RevenueStreamSetting,
     value: RevenueStreamSetting[keyof RevenueStreamSetting]
   ) => void;
+  updateFinancialInput: <K extends keyof FinancialInputSettings>(
+    settingKey: K,
+    value: FinancialInputSettings[K]
+  ) => void; // Added updater for financial inputs
   isSaved: boolean;
   markAsSaved: () => void;
   markAsUnsaved: () => void; // Can be called implicitly by updateProjectField
@@ -78,9 +95,9 @@ export const ProjectDataProvider: React.FC<{ children: ReactNode }> = ({
       value: ActiveProjectState[K]
     ) => {
       // Prevent direct update of revenueStreamSettings here if using dedicated function
-      if (field === "revenueStreamSettings") {
+      if (field === "revenueStreamSettings" || field === "financialInputs") {
         console.warn(
-          "Use updateRevenueStreamSetting for modifying stream settings."
+          "Use updateRevenueStreamSetting or updateFinancialInput for modifying nested settings."
         );
         return;
       }
@@ -127,6 +144,31 @@ export const ProjectDataProvider: React.FC<{ children: ReactNode }> = ({
     []
   );
 
+  // Dedicated function to update a specific financial input setting
+  const updateFinancialInput = useCallback(
+    <K extends keyof FinancialInputSettings>(
+      settingKey: K,
+      value: FinancialInputSettings[K]
+    ) => {
+      setProjectDataState((prevData) => {
+        if (!prevData) return null;
+
+        const newFinancialInputs = {
+          ...(prevData.financialInputs || {}),
+          [settingKey]: value,
+        };
+
+        const newData = {
+          ...prevData,
+          financialInputs: newFinancialInputs as FinancialInputSettings, // Type assertion
+        };
+        return newData;
+      });
+      setIsSaved(false);
+    },
+    []
+  );
+
   const markAsSaved = useCallback(() => {
     setIsSaved(true);
     // Potentially update the stored projectId if a sandbox project was just saved
@@ -148,6 +190,7 @@ export const ProjectDataProvider: React.FC<{ children: ReactNode }> = ({
         setProjectData,
         updateProjectField,
         updateRevenueStreamSetting, // Provide the new function
+        updateFinancialInput, // Provide the new financial input updater
         isSaved,
         markAsSaved,
         markAsUnsaved,
