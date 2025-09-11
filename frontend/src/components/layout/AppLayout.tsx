@@ -1,9 +1,8 @@
-
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import Navbar from './Navbar';
-import AppSidebar from './AppSidebar';
+import React from "react";
+import { Outlet } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import Navbar from "./Navbar";
+import AppSidebar from "./AppSidebar";
 
 const AppLayout = () => {
   return (
@@ -16,7 +15,8 @@ const AppLayout = () => {
             <Outlet />
           </main>
           <footer className="py-3 px-6 text-center text-sm text-muted-foreground border-t">
-            © {new Date().getFullYear()} Renewalytics - Energy Revenue Forecasting Tool
+            © {new Date().getFullYear()} Renewalytics - Energy Revenue
+            Forecasting Tool
           </footer>
         </div>
       </div>

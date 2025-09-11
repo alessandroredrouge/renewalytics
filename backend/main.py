@@ -4,6 +4,8 @@ import logging
 
 # Import the main API router
 from app.api.v1.api import api_v1_router
+# Remove direct import of prices_router
+# from app.api.v1.endpoints import prices as prices_router 
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -44,9 +46,9 @@ app.add_middleware(
     expose_headers=["Content-Range", "Range"] # Added expose_headers
 )
 
-# Include the v1 API router
-# All routes defined in api_v1_router will be prefixed with /api/v1
+# Include the v1 API router (now contains projects, pipelines, dashboard, and prices)
 app.include_router(api_v1_router, prefix="/api/v1")
+
 
 @app.get("/")
 async def read_root():
